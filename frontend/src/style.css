@@ -13,3 +13,12 @@ article { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .
 article span, footer { color: #51645a; }
 footer { border-top: 1px solid #cbd3ca; padding-top: 1.5rem; font-size: .85rem; line-height: 1.6; }
 button { cursor: pointer; padding: .35rem .7rem; }
+form { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,15rem),1fr)); gap: 1rem; align-items: end; margin: 1.5rem 0; }
+label { display: grid; gap: .45rem; font-size: .9rem; }
+input,select,button { border: 1px solid #8b9d93; border-radius: .35rem; padding: .65rem .8rem; font: inherit; }
+button { background: #214e42; color: white; }
+button:disabled { opacity: .65; }
+small { overflow-wrap: anywhere; }
+:focus-visible { outline: 3px solid #7953a0; outline-offset: 3px; }
+dt { font-weight: 650; text-transform: capitalize; }
+dd { margin: .3rem 0 1rem; }

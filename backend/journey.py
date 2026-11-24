@@ -1,0 +1,132 @@
+"""Functional HTTP rehearsal with synthetic accounts. Emits only sanitized proof metadata."""
+
+import argparse
+import http.cookiejar
+import json
+import time
+from urllib.error import HTTPError
+from urllib.parse import urlsplit
+from urllib.request import HTTPCookieProcessor, ProxyHandler, Request, build_opener
+
+from flows import password
+from issuance import mode
+from proof import commitment
+from store import connect
+import registry
+
+
+class Browser:
+    def __init__(self, origin):
+        target = urlsplit(origin)
+        if (
+            target.scheme != "http"
+            or target.hostname not in ("127.0.0.1", "localhost")
+            or target.username
+            or target.password
+            or target.path
+            or target.query
+            or target.fragment
+        ):
+            raise ValueError("Fixture sign-in requires a local loopback origin.")
+        self.origin = origin
+        self.client = build_opener(
+            ProxyHandler({}),
+            registry.NoRedirect(),
+            HTTPCookieProcessor(http.cookiejar.CookieJar()),
+        )
+
+    def call(self, path, method="GET", data=None, expected=200):
+        request = Request(
+            self.origin + "/api/v1/" + path,
+            method=method,
+            headers={
+                "Origin": self.origin,
+                "X-Vertetify": "workspace",
+                "Content-Type": "application/json",
+            },
+            data=None if data is None else json.dumps(data).encode(),
+        )
+        try:
+            with self.client.open(request, timeout=35) as response:
+                status, result = response.status, json.load(response)
+        except HTTPError as exc:
+            status, result = exc.code, None
+        if status != expected:
+            raise RuntimeError(f"{method} {path} expected {expected}, got {status}")
+        return result
+
+    def login(self, member):
+        self.call("session", "POST", {"member": member, "password": password(member)})
+
+
+def rehearse(origin):
+    registrar, holder, guest, auditor = [Browser(origin) for _ in range(4)]
+    guest.call("diplomas", expected=401)
+    registrar.login("fixture-registrar")
+    holder.login("fixture-holder")
+    auditor.login("fixture-auditor")
+    fields = dict(
+        subject_display_name="Drita Demo",
+        program_name="Shkencë Kompjuterike",
+        award_name="BSc",
+        award_date="2026-06-30",
+    )
+    key = registrar.call("diplomas", "POST", fields, 201)["id"]
+    route = f"diplomas/{key}"
+    for client in (holder, auditor):
+        client.call(route + "/issue", "POST", expected=403)
+    for _ in range(2):
+        registrar.call(route + "/issue", "POST", expected=202)
+    deadline = time.monotonic() + 75
+    while time.monotonic() < deadline:
+        item = next(i for i in registrar.call("diplomas")["items"] if i["id"] == key)
+        if item["state"] == "issued":
+            break
+        if item["state"] == "review":
+            raise RuntimeError(
+                "Write requires reconciliation. Inspect the local operation before any new issuance."
+            )
+        time.sleep(1)
+    else:
+        raise RuntimeError("Timed out waiting for matched evidence.")
+    share = holder.call(route + "/share", "POST", expected=201)
+    result = guest.call("public/verify", "POST", share)
+    expected = (
+        "verified_local_chain" if mode() == "compellio-local" else "matched_simulator"
+    )
+    if (
+        result["status"] != expected
+        or result["source"] != mode()
+        or set(result["diploma"])
+        != {"issuer_id", "award_name", "award_date", "program_name"}
+    ):
+        raise RuntimeError("Public projection or proof source failed.")
+    holder.call("shares/disable", "POST", share)
+    disabled = guest.call("public/verify", "POST", share)
+    if disabled["status"] != "link_unavailable" or "diploma" in disabled:
+        raise RuntimeError("Disabled share disclosed evidence.")
+    registrar.call("session", "DELETE")
+    registrar.call("diplomas", expected=401)
+    evidence = dict(
+        source=mode(),
+        reference=item["reference"],
+        credential_id=key,
+        status=expected,
+        checked_at=result["checked_at"],
+        version=1,
+    )
+    if mode() == "compellio-local":
+        with connect() as db:
+            snapshot, nonce = db.execute(
+                "SELECT snapshot,nonce FROM diplomas WHERE id=%s", (key,)
+            ).fetchone()
+        evidence["envelope_sha256"] = registry.verify(
+            item["reference"], commitment(snapshot, nonce)
+        )
+    print(json.dumps(evidence, indent=2))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--origin", default="http://127.0.0.1:8000")
+    rehearse(parser.parse_args().origin)

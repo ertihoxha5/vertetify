@@ -35,7 +35,8 @@ if __name__ == "__main__":
         check(base + "/api/health/live", lambda body: json.loads(body)["status"] == "alive")
         check(base + "/api/health/ready", lambda body: json.loads(body)["status"] == "ready")
         check(base + "/api/workspace", lambda body: json.loads(body)["mode"] == "simulator")
-        compose("exec", "-T", "web", "python", "-m", "unittest", "-v")
+        compose("exec", "-T", "-e", "VERTETIFY_ISOLATED_TEST=1", "web", "python", "-m", "unittest", "-v")
+        compose("exec", "-T", "web", "python", "journey.py")
         compose("run", "--rm", "--no-deps", "worker", "python", "worker.py", "rehearse")
         print("Local simulator HTTP and database checks passed.")
     finally:

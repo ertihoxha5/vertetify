@@ -1,0 +1,15 @@
+services:
+  web:
+    environment:
+      REGISTRY_MODE: compellio-local
+      REGISTRY_NETWORK: compose
+    networks: [default, registry]
+  dispatcher:
+    environment:
+      REGISTRY_MODE: compellio-local
+      REGISTRY_NETWORK: compose
+    networks: [default, registry]
+networks:
+  registry:
+    external: true
+    name: vertetify-registry_default

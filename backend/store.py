@@ -9,8 +9,8 @@ MIGRATIONS = sorted((ROOT / "migrations").glob("*.sql"))
 
 
 def check_mode():
-    if os.getenv("APP_ENV", "local") != "local" or os.getenv("REGISTRY_MODE", "simulator") != "simulator":
-        raise RuntimeError("This build requires the local simulator configuration.")
+    if os.getenv("APP_ENV", "local") != "local" or os.getenv("REGISTRY_MODE", "simulator") not in ("simulator","compellio-local"):
+        raise RuntimeError("Select a supported local registry mode.")
 
 
 def connect():
