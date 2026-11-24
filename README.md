@@ -48,6 +48,24 @@ docker compose down
 
 The setup worker exits after applying migrations and fixtures. A dispatcher processes issuance requests. The legacy worker rehearsal exercises the simulator only. Health endpoints are `/api/health/live` and `/api/health/ready`. Use the [personal testing walkthrough](docs/manual-testing.md) for accounts, passwords, browser steps and expected outcomes. Use the [Compellio setup guide](docs/integrations/compellio.md) to run the official provider in a separate environment.
 
+## Connect to PostgreSQL
+
+In a terminal at the project root, open the running database with:
+
+```powershell
+docker compose exec db psql -U vertetify -d vertetify
+```
+
+Use `\dt` to list tables, `SELECT name FROM tenants ORDER BY name;` to view the two synthetic institutions and `\q` to exit.
+
+For a desktop SQL client, enable the loopback port on the database service:
+
+```powershell
+docker compose -f compose.yaml -f compose.database.yaml up -d --wait db
+```
+
+In pgAdmin or DBeaver choose PostgreSQL, host `127.0.0.1`, port `55432`, database and username `vertetify`. Use the existing `POSTGRES_PASSWORD` from your private local `.env`. The connection is local TCP, with SSL disabled. If the port is occupied, set `POSTGRES_HOST_PORT` in `.env` and repeat the command. To keep desktop SQL access when starting the whole official Registry deployment, include both `-f compose.registry.yaml` and `-f compose.database.yaml` after `-f compose.yaml`.
+
 ## Baseline checks
 
 ```sh
