@@ -1,0 +1,15 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f6f5ef; color: #1a302c; font-family: Inter, system-ui, sans-serif; }
+header { padding: 1.2rem clamp(1rem, 7vw, 8rem); background: #173c34; color: white; display: flex; align-items: center; justify-content: space-between; }
+header b { font: bold 1.8rem Georgia, serif; }
+header span { border: 1px solid #accabe; border-radius: 2rem; padding: .4rem .9rem; font-size: .85rem; }
+main { max-width: 63rem; margin: 0 auto; padding: clamp(3rem, 8vw, 7rem) 1.4rem; }
+.eyebrow { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: #456555; }
+h1 { font: normal clamp(2.8rem, 8vw, 5.2rem)/1.04 Georgia, serif; letter-spacing: -.045em; margin: 1.2rem 0; }
+.intro { color: #52635d; max-width: 37rem; line-height: 1.6; }
+section { margin-top: 3.5rem; border-top: 2px solid #355c4d; }
+h2 { font: normal 1.7rem Georgia, serif; }
+article { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; padding: 1.4rem 0; border-top: 1px solid #cbd3ca; }
+article span, footer { color: #51645a; }
+footer { border-top: 1px solid #cbd3ca; padding-top: 1.5rem; font-size: .85rem; line-height: 1.6; }
+button { cursor: pointer; padding: .35rem .7rem; }

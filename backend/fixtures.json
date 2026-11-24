@@ -1,0 +1,26 @@
+[
+  {
+    "id": "juniper",
+    "name": "Juniper Valley University",
+    "members": [
+      [
+        "fixture-registrar",
+        "registrar"
+      ],
+      [
+        "fixture-holder",
+        "holder"
+      ]
+    ]
+  },
+  {
+    "id": "alder",
+    "name": "Alder Ridge Institute",
+    "members": [
+      [
+        "fixture-auditor",
+        "auditor"
+      ]
+    ]
+  }
+]

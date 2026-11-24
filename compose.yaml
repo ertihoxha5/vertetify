@@ -1,0 +1,43 @@
+x-app: &app
+  build: .
+  environment:
+    APP_ENV: ${APP_ENV:-local}
+    REGISTRY_MODE: ${REGISTRY_MODE:-simulator}
+    PGHOST: db
+    PGDATABASE: vertetify
+    PGUSER: vertetify
+    PGPASSWORD: ${POSTGRES_PASSWORD:?Generate a local password as described in README}
+services:
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_USER: vertetify
+      POSTGRES_DB: vertetify
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a local password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "vertetify", "-d", "vertetify"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  worker:
+    <<: *app
+    command: ["python", "worker.py", "setup"]
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    <<: *app
+    depends_on:
+      worker:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8184}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health/ready',timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+volumes:
+  pgdata:
