@@ -1,5 +1,7 @@
 # Foundation evidence · 23 November 2026
 
+For the subsequent official-provider run, see [actual local-chain verification](compellio-local.md).
+
 Checked the local working tree based on `158ff97` (README-only baseline). The implementation was uncommitted at verification time. Host tools included Python 3.12.1, Node 24.19.0, Docker Engine 29.5.2 and Compose 5.1.3. The Linux image build used Node 22, Python 3.12 and PostgreSQL 16.
 
 | Gate | Command / artifact | Observed result |

@@ -6,16 +6,16 @@ Vertetify is a proof of concept for issuing and verifying digital university dip
 
 Verifying a diploma can mean contacting the issuing university and waiting for a manual check. Vertetify explores a simpler workflow where a graduate shares a diploma by QR code and a verifier can check its authenticity online.
 
-## How it will work
+## Credential workflow
 
 1. An authorized university registrar issues a synthetic diploma.
 2. Vertetify registers a cryptographic proof through the Compellio Registry API.
-3. The graduate shares a QR link and chooses which diploma details to disclose.
+3. The graduate reviews the four disclosure fields and shares an expiring QR link.
 4. The verifier opens the link and sees the verification result and when it was checked.
 
 ## Project status
 
-The local foundation serves a read-only synthetic institution workspace through FastAPI and React. A one-shot worker migrates PostgreSQL, seeds two fictional tenants and can rehearse a simulated registration and lookup. Issuance, graduate sharing, production authentication and live provider verification are later milestones.
+The local app supports synthetic registrar drafts, queued issuance, a graduate wallet, QR sharing and anonymous verification. The default deployment uses a labeled simulator. A separate Compose override selects the official local Compellio Registry and blockchain. Consult the [progress and acceptance record](docs/progress.md) for actual validation results and remaining release gates.
 
 ## Stack
 
@@ -46,7 +46,7 @@ docker compose run --rm worker python worker.py rehearse
 docker compose down
 ```
 
-The setup worker exits successfully after applying migrations and fixtures. Repeat seeding preserves existing rows. The rehearsal writes and reads a synthetic digest and prints a simulator reference. The fixture roles are sample records. The browser exposes only institution names and counts. Health endpoints are `/api/health/live` and `/api/health/ready`.
+The setup worker exits after applying migrations and fixtures. A dispatcher processes issuance requests. The legacy worker rehearsal exercises the simulator only. Health endpoints are `/api/health/live` and `/api/health/ready`. Use the [personal testing walkthrough](docs/manual-testing.md) for accounts, passwords, browser steps and expected outcomes. Use the [Compellio setup guide](docs/integrations/compellio.md) to run the official provider in a separate environment.
 
 ## Baseline checks
 
@@ -68,3 +68,7 @@ python -m ruff check backend scripts
 See [challenge discovery](docs/challenge.md), [Compellio onboarding](docs/integrations/compellio.md) and the [milestone evidence index](docs/evidence/index.md).
 
 Built by Erti Hoxha.
+
+## Jury materials
+
+Read the [competition report](docs/submission/report.pdf), watch the [recorded browser demonstration](docs/submission/demo.mp4), or inspect the [actual TAR evidence](docs/evidence/compellio-local.md). The [architecture decisions](docs/architecture.md) and [requirements traceability](docs/requirements.md) connect the implementation to the organizer guide.
