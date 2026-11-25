@@ -89,7 +89,12 @@ def rehearse(origin):
         time.sleep(1)
     else:
         raise RuntimeError("Timed out waiting for matched evidence.")
+    existing_ids = {entry["id"] for entry in holder.call("shares")}
     share = holder.call(route + "/share", "POST", expected=201)
+    created = [entry for entry in holder.call("shares") if entry["id"] not in existing_ids]
+    if len(created) != 1 or set(created[0]) != {"id", "programme", "expires"}:
+        raise RuntimeError("Unexpected share management projection.")
+    management_path = "shares/" + created[0]["id"]
     result = guest.call("public/verify", "POST", share)
     expected = (
         "verified_local_chain" if mode() == "compellio-local" else "matched_simulator"
@@ -101,7 +106,15 @@ def rehearse(origin):
         != {"issuer_id", "award_name", "award_date", "program_name"}
     ):
         raise RuntimeError("Public projection or proof source failed.")
-    holder.call("shares/disable", "POST", share)
+    sibling = holder.call(route + "/share", "POST", expected=201)
+    holder.call("session", "DELETE")
+    holder.login("fixture-holder")
+    guest.call(management_path, "DELETE", expected=401)
+    auditor.call(management_path, "DELETE", expected=403)
+    holder.call(management_path, "DELETE")
+    if guest.call("public/verify", "POST", sibling)["status"] != expected:
+        raise RuntimeError("Disabling one share affected another share.")
+    holder.call("shares/disable", "POST", sibling)
     disabled = guest.call("public/verify", "POST", share)
     if disabled["status"] != "link_unavailable" or "diploma" in disabled:
         raise RuntimeError("Disabled share disclosed evidence.")

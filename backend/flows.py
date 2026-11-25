@@ -169,19 +169,46 @@ def share(key: UUID, req: Request):
         return {"token": token}
 
 
-@router.post("/shares/disable")
-def disable(data: Token, req: Request):
+@router.get("/shares")
+def active_shares(req: Request):
+    with connect() as db:
+        tenant, member, _ = actor(db, req, "holder")
+        rows = db.execute(
+            """SELECT s.management_id, s.expires, d.snapshot->>'program_name'
+               FROM diploma_shares s JOIN diplomas d ON (s.tenant,s.diploma)=(d.tenant,d.id)
+               WHERE s.tenant=%s AND d.holder=%s AND d.mode=%s AND d.state='issued'
+                 AND NOT s.disabled AND s.expires>now()
+               ORDER BY s.expires DESC, s.management_id""", (tenant, member, mode())
+        ).fetchall()
+        return [{"id": key, "expires": expires, "programme": programme} for key, expires, programme in rows]
+
+
+def disable_owned_share(req: Request, *, digest: bytes | None = None, management_id: UUID | None = None):
     with connect() as db:
         tenant, member, _ = actor(db, req, "holder")
         row = db.execute(
-            """UPDATE diploma_shares s SET disabled=true FROM diplomas d WHERE s.digest=%s
-            AND s.tenant=%s AND d.id=s.diploma AND d.holder=%s AND d.mode=%s RETURNING d.id""",
-            (keyed("share", data.token), tenant, member, mode()),
+            """SELECT d.id,s.digest,s.disabled FROM diploma_shares s
+               JOIN diplomas d ON (s.tenant,s.diploma)=(d.tenant,d.id)
+               WHERE (s.digest=%s OR s.management_id=%s)
+                 AND s.tenant=%s AND d.holder=%s AND d.mode=%s FOR UPDATE OF s""",
+            (digest, management_id, tenant, member, mode()),
         ).fetchone()
         if not row:
             raise HTTPException(404)
-        event(db, tenant, row[0], "share_disabled")
+        if not row[2]:
+            db.execute("UPDATE diploma_shares SET disabled=true WHERE digest=%s", (row[1],))
+            event(db, tenant, row[0], "share_disabled")
     return {"status": "disabled"}
+
+
+@router.post("/shares/disable")
+def disable(data: Token, req: Request):
+    return disable_owned_share(req, digest=keyed("share", data.token))
+
+
+@router.delete("/shares/{management_id}")
+def disable_by_id(management_id: UUID, req: Request):
+    return disable_owned_share(req, management_id=management_id)
 
 
 @router.post("/public/verify")

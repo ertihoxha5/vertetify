@@ -17,8 +17,8 @@ Expected services are a healthy database and web app, a running dispatcher and a
    docker compose exec -T web python flows.py fixture-registrar
    ```
 
-2. Choose **fixture-registrar**, enter that password and sign in. Review the synthetic graduate, programme, award and date. Choose **Create draft for fixture holder**. Check the new draft, then select **Confirm issuance**. The page refreshes pending records. An issued record shows its reference. Simulator references start with `sim-`. Actual test-chain references begin with `urn:tar:eip155.31337:`.
-3. Sign out. Retrieve the holder's password and sign in as **fixture-holder**.
+2. Choose **Registrar · Juniper Valley**, enter that password and sign in. Review the synthetic graduate, programme, award and date. Choose **Create draft for fixture holder**. Check the new draft, then select **Confirm issuance**. The page refreshes pending records. Expand **Registry reference** on the issued record. Simulator references start with `sim-`. Actual test-chain references begin with `urn:tar:eip155.31337:`.
+3. Sign out. Retrieve the holder's password and choose **Graduate · Juniper Valley** and sign in.
 
    ```powershell
    docker compose exec -T web python flows.py fixture-holder
@@ -26,7 +26,8 @@ Expected services are a healthy database and web app, a running dispatcher and a
 
 4. In the graduate wallet, select **Share award, programme, date and institution**. A QR and text link appear. Open the link in a private window. Expect a source, check time and those four fields on success. The graduate's name stays private. The link lasts seven days. Loopback URLs work on the same computer. Use browser device emulation for a phone-sized view. A physical phone needs a separately secured reachable deployment.
 5. Return to the holder window, choose **Disable this link** and reopen the original link. Expect the unavailable-link message and zero diploma details. Reloading the verifier after its fragment was cleared also requires reopening the original link.
-6. The second institution's **fixture-auditor** account can sign in using the same password command with its account name. It sees no Juniper diplomas or issue/share actions.
+   To test management after sign-out, create two shares for the same diploma and copy each link. Sign out, sign back in as the graduate, and open **Active verification links**. Disable one row using its link identifier and expiry. Reopen both original links. Only the disabled share should withhold the diploma.
+6. The second institution's **Auditor · Alder Ridge** account can sign in using the same password command with its account name. It sees no Juniper diplomas or issue/share actions.
 7. For an automated replay (creates a new synthetic diploma, then disables its share):
 
    ```powershell

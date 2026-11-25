@@ -1,6 +1,16 @@
 # Milestone review · 24 November 2026
 
-Baseline commit `2fb2deb` contains the previously verified M1 foundation. The current changes are a working-tree continuation. This record uses Pending, In Progress, Implemented, Testing, Completed and Blocked. Completed denotes a validated scope. Suggested commit subjects below are proposals.
+## 25 November · Workspace and graduate share management
+
+The verified registry implementation and competition materials are preserved in `486bca2` and `97d8501`. Commit `c321571` adds opt-in database access from a desktop SQL client. A password-authenticated host connection to PostgreSQL 16.16 on loopback port 55432 returned the expected database, user and two synthetic institutions.
+
+The workspace and public verifier now use a shared visual identity, responsive layouts and role-specific forms. The graduate wallet lists active shares after a new sign-in. Each row has an independent management identifier and expiry. The private list returns no bearer tokens. Older shares gain identifiers through additive migration 004.
+
+The actual Registry journey issued TAR `urn:tar:eip155.31337:0xdc64a140aa3e981100a9beca4e685f962f0cf6c9`. After signing back in, the holder disabled one share and the sibling link still verified. Anonymous and auditor management requests were denied. The mobile keyboard and same-tab verifier regression passed. TypeScript and Ruff checks passed. The 42.5-second submission video records the earlier validated interface.
+
+On 25 November, a fresh isolated PostgreSQL volume passed all 14 tests in 0.805 seconds using the locally built images. The HTTP journey returned `matched_simulator` and the worker rehearsal matched its synthetic digest. Docker removed the temporary stack and volume. A clean build attempt encountered a Docker Hub TLS timeout.
+
+Baseline commit `2fb2deb` contains the previously verified M1 foundation. This record uses Pending, In Progress, Implemented, Testing, Completed and Blocked. Completed denotes a validated scope. Suggested commit subjects below are proposals.
 
 | Task / milestone | Status | Functionality, files and decision | Test or evidence; limitation | Suggested commit / next |
 | --- | --- | --- | --- | --- |

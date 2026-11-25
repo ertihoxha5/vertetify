@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './style.css'
 import { Credentials, Verifier } from './credentials'
+import { DiplomaArtwork, RegistryHeader } from './identity'
 
 type Institution = { name: string, members: number }
 
@@ -27,15 +28,18 @@ function App() {
   }, [attempt])
 
   return <>
-    <header><b>Vertetify</b><span>{mode === 'compellio-local' ? 'Compellio · local test blockchain' : mode === 'simulator' ? 'Local simulator' : 'Connecting…'}</span></header>
-    <main><p className="eyebrow">BlockJump Kosovo · Certifications</p>
-      <h1>Registry workspace</h1><p className="intro">Explore the fictional institutions prepared for local diploma verification rehearsals.</p>
-      <Credentials/><section><h2>Synthetic institutions</h2>
+    <RegistryHeader source={mode === 'compellio-local' ? 'Compellio · local test blockchain' : mode === 'simulator' ? 'Local simulator' : state === 'error' ? 'Connection unavailable' : 'Connecting…'}/>
+    <main className="workspace">
+      <div className="hero"><div className="hero-copy"><p className="eyebrow">Academic credential registry</p>
+        <h1>Registry <em>workspace</em></h1><p className="intro">Issue digital diplomas, manage graduate shares and verify academic records.</p></div>
+        <DiplomaArtwork/>
+      </div>
+      <div className="workspace-grid"><Credentials/><section className="institutions"><p className="eyebrow">Directory</p><h2>Synthetic institutions</h2>
         <div aria-live="polite">{state === 'loading' ? <p>Loading institutions…</p> :
           state === 'error' ? <p>Workspace unavailable. <button onClick={() => setAttempt(attempt + 1)}>Retry</button></p> :
           schools.length === 0 ? <p>No fixtures loaded.</p> :
-          schools.map(school => <article key={school.name}><strong>{school.name}</strong><span>{school.members} fixture {school.members === 1 ? 'member' : 'members'}</span></article>)}</div>
-      </section><footer>All records shown here are synthetic.</footer>
+          schools.map(school => <article key={school.name}><span className="monogram" aria-hidden="true">{school.name.split(' ').slice(0,2).map(word=>word[0]).join('')}</span><div><strong>{school.name}</strong><small>{school.members} fixture {school.members === 1 ? 'member' : 'members'}</small></div></article>)}</div>
+      </section></div><footer><span>Vertetify · BlockJump Kosovo</span><span>Synthetic credentials only</span></footer>
     </main></>
 }
 
