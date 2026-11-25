@@ -1,10 +1,13 @@
 """Exercise the local wallet and same-tab verifier using an existing issued fixture."""
 
+from io import BytesIO
 import os
 from pathlib import Path
 import subprocess
 
+from PIL import Image
 from playwright.sync_api import sync_playwright
+import zxingcpp
 
 
 def main():
@@ -27,7 +30,13 @@ def main():
             channel="msedge", headless=True, args=["--no-proxy-server"]
         )
         holder = browser.new_page(viewport={"width": 390, "height": 844})
-        evidence = Path(__file__).resolve().parents[1] / "docs" / "evidence"
+        evidence = (
+            Path(__file__).resolve().parents[1]
+            / "docs"
+            / "evidence"
+            / "institution-access"
+        )
+        evidence.mkdir(exist_ok=True)
         for width in (360, 390, 768, 1440):
             holder.set_viewport_size({"width": width, "height": 900})
             holder.emulate_media(reduced_motion="reduce")
@@ -62,12 +71,27 @@ def main():
                 .filter(has=holder.locator(f'[data-credential="{key}"]'))
                 .get_by_role("button", name="Share award", exact=False)
             )
+        if key:
+            article = holder.locator("article").filter(
+                has=holder.locator(f'[data-credential="{key}"]')
+            )
+            article.get_by_role("link", name="Open credential details").click()
+            holder.get_by_role("link", name="Back to wallet").wait_for()
+            assert holder.locator("[data-credential]").count() == 1
         award.click()
         link = holder.get_by_role("link", name="Open verification link").get_attribute(
             "href"
         )
         verifier = browser.new_page(viewport={"width": 320, "height": 640})
         try:
+            qr_image = Image.open(
+                BytesIO(holder.locator(".share-panel svg").screenshot())
+            )
+            decoded = zxingcpp.read_barcode(qr_image)
+            if decoded is None or decoded.text != link:
+                raise RuntimeError(
+                    "The rendered QR did not decode to the current share URL."
+                )
             verifier.goto(origin + "/verify")
             verifier.get_by_label("Verification link").fill(
                 "https://example.invalid/verify#t=test"
@@ -129,7 +153,9 @@ def main():
             page.get_by_role("button", name="Sign out").click()
             page.get_by_label("Fixture account").wait_for()
         browser.close()
-    print("Keyboard login, mobile layout and same-tab recheck passed.")
+    print(
+        "Keyboard login, owner detail, QR decode, public verification and same-tab recheck passed."
+    )
 
 
 if __name__ == "__main__":

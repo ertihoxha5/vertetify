@@ -22,7 +22,7 @@ class FoundationTests(unittest.TestCase):
                 for _ in range(2):
                     migrate(db)
                     seed(db)
-                self.assertEqual(db.execute("SELECT count(*) FROM members").fetchone(), (3,))
+                self.assertEqual(db.execute("SELECT count(*) FROM members WHERE tenant_id IN ('juniper','alder')").fetchone(), (3,))
                 digest = "a" * 64
                 ref = register(db, "juniper", digest)
                 self.assertEqual(register(db, "juniper", digest), ref)

@@ -26,6 +26,9 @@ def keyed(label, value):
     )
 
 
+FIXTURES = ("fixture-holder", "fixture-registrar", "fixture-auditor", "fixture-operator")
+
+
 def password(member):
     return keyed("demo-login", member).hex()[:32]
 
@@ -44,6 +47,10 @@ class Academic(Input):
     program_name: str = Field(min_length=1, max_length=120)
     award_name: str = Field(min_length=1, max_length=80)
     award_date: date
+
+
+class DraftFields(Academic):
+    holder: str | None = Field(default=None,max_length=80)
 
 
 class Token(Input):
@@ -72,9 +79,15 @@ def login(data: Login, req: Request, response: Response):
         row = db.execute(
             "SELECT tenant_id,id,role FROM members WHERE id=%s", (data.member,)
         ).fetchall()
-        if len(row) != 1 or not hmac.compare_digest(
-            password(data.member).encode(), data.password.encode()
-        ):
+        valid = False
+        if len(row) == 1 and row[0][2] != "inactive":
+            if data.member in FIXTURES:
+                valid = hmac.compare_digest(password(data.member).encode(), data.password.encode())
+            else:
+                saved = db.execute("SELECT secret FROM invited_logins WHERE member=%s AND tenant=%s AND mode=%s",
+                                   (data.member,row[0][0],mode())).fetchone()
+                valid = bool(saved and hmac.compare_digest(saved[0],keyed("invited-login",data.password)))
+        if not valid:
             raise HTTPException(401, "Sign-in failed.")
         tenant, member, role = row[0]
         token = secrets.token_urlsafe(32)
@@ -108,32 +121,36 @@ def diplomas(req: Request):
     with connect() as db:
         tenant, member, role = actor(db, req)
         rows = db.execute(
-            """SELECT id,snapshot,state,reference FROM diplomas WHERE tenant=%s AND mode=%s
+            """SELECT id,snapshot,state,reference,
+                   (SELECT max(occurred) FROM diploma_events e WHERE e.diploma=d.id AND e.event='evidence_matched')
+                   FROM diplomas d WHERE tenant=%s AND mode=%s
             AND (%s='registrar' OR (%s='holder' AND holder=%s AND state='issued')) ORDER BY id""",
             (tenant, mode(), role, role, member),
         ).fetchall()
         return {
             "role": role,
+            "holders": [r[0] for r in db.execute("SELECT id FROM members WHERE tenant_id=%s AND role='holder' ORDER BY id",(tenant,))] if role=="registrar" else [],
             "institution": db.execute("SELECT name FROM tenants WHERE id=%s", (tenant,)).fetchone()[0],
             "items": [
-                {"id": k, "snapshot": p, "state": s, "reference": r}
-                for k, p, s, r in rows
+                {"id": k, "snapshot": p, "state": s, "reference": r, "last_matched": checked,
+                 "version": 1 if checked and mode()=="compellio-local" else None}
+                for k, p, s, r, checked in rows
             ],
         }
 
 
 @router.post("/diplomas", status_code=201)
-def create_draft(data: Academic, req: Request):
+def create_draft(data: DraftFields, req: Request):
     with connect() as db:
         tenant, _, _ = actor(db, req, "registrar")
         # The local demo has one seeded recipient in the registrar's institution.
         holder = db.execute(
-            "SELECT id FROM members WHERE tenant_id=%s AND role='holder' ORDER BY id LIMIT 1",
-            (tenant,),
-        ).fetchone()
-        if not holder:
-            raise HTTPException(409, "No fixture recipient.")
-        return {"id": draft(db, tenant, holder[0], data.model_dump(mode="json"))}
+            "SELECT id FROM members WHERE tenant_id=%s AND role='holder' AND (%s::text IS NULL OR id=%s) ORDER BY id LIMIT 2",
+            (tenant,data.holder,data.holder),
+        ).fetchall()
+        if len(holder) != 1:
+            raise HTTPException(409, "Select one active graduate in your institution.")
+        return {"id": draft(db, tenant, holder[0][0], data.model_dump(mode="json",exclude={"holder"}))}
 
 
 @router.post("/diplomas/{key}/issue", status_code=202)
@@ -171,15 +188,15 @@ def share(key: UUID, req: Request):
 
 
 @router.get("/shares")
-def active_shares(req: Request):
+def active_shares(req: Request, credential: UUID | None = None):
     with connect() as db:
         tenant, member, _ = actor(db, req, "holder")
         rows = db.execute(
             """SELECT s.management_id, s.expires, d.snapshot->>'program_name'
                FROM diploma_shares s JOIN diplomas d ON (s.tenant,s.diploma)=(d.tenant,d.id)
                WHERE s.tenant=%s AND d.holder=%s AND d.mode=%s AND d.state='issued'
-                 AND NOT s.disabled AND s.expires>now()
-               ORDER BY s.expires DESC, s.management_id""", (tenant, member, mode())
+                 AND NOT s.disabled AND s.expires>now() AND (%s::uuid IS NULL OR d.id=%s)
+               ORDER BY s.expires DESC, s.management_id""", (tenant, member, mode(),credential,credential)
         ).fetchall()
         return [{"id": key, "expires": expires, "programme": programme} for key, expires, programme in rows]
 
@@ -214,6 +231,15 @@ def disable_by_id(management_id: UUID, req: Request):
 
 @router.post("/public/verify")
 def public_verify(data: Token):
+    result = verify_share(data)
+    with connect() as db:
+        db.execute("""INSERT INTO verification_counts VALUES ((now() AT TIME ZONE 'UTC')::date,%s,%s,1)
+                    ON CONFLICT(day,mode,outcome) DO UPDATE SET total=verification_counts.total+1""",
+                   (mode(), result["status"]))
+    return result
+
+
+def verify_share(data: Token):
     result = {
         "source": mode(),
         "checked_at": datetime.now(UTC).isoformat(),
@@ -258,6 +284,6 @@ if __name__ == "__main__":
         description="Display one local fixture sign-in password."
     )
     parser.add_argument(
-        "member", choices=["fixture-registrar", "fixture-holder", "fixture-auditor"]
+        "member", choices=FIXTURES
     )
     print(password(parser.parse_args().member))

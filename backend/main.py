@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from store import check_mode, connect, ready
+from access import router as access_router
 from flows import router
 from issuance import mode
 
@@ -17,6 +18,7 @@ check_mode()
 app = FastAPI(title="Vertetify local credentials")
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost","127.0.0.1","testserver"])
 app.include_router(router)
+app.include_router(access_router)
 
 
 @app.middleware("http")
@@ -63,7 +65,7 @@ def workspace():
         with connect() as db:
             rows = db.execute(
                 """SELECT t.name, count(m.id) FROM tenants t LEFT JOIN members m
-                   ON t.id = m.tenant_id GROUP BY t.id, t.name ORDER BY t.name"""
+                   ON t.id = m.tenant_id WHERE t.id IN ('juniper','alder') GROUP BY t.id, t.name ORDER BY t.name"""
             ).fetchall()
     except psycopg.Error:
         raise HTTPException(503, "Workspace unavailable") from None

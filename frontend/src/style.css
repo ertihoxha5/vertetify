@@ -180,3 +180,22 @@ button:hover {background:#50375f}
 .issue-form summary {background:#352541;color:white;border-radius:6px;padding:.75em 1.15em;font-weight:600;font-size:.94rem}
 .issue-form form {max-width:48rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
 .record-link small {overflow-wrap:anywhere}
+.guide {max-width:1160px;margin:auto;padding:clamp(22px,5vw,64px);line-height:1.6}
+.guide section {padding:clamp(20px,4vw,48px) 0;border-bottom:1px solid var(--line)}
+.guide section>p {max-width:76ch}
+.tour,.entry-grid {display:grid;gap:clamp(18px,3vw,42px);align-items:start}
+.tour {grid-template-columns:1fr 1.4fr}.entry-grid {grid-template-columns:repeat(3,1fr)}
+.step-content {background:#eee6f7;border-left:4px solid #7c5cb6;border-radius:5px;padding:24px}
+.step-buttons {display:flex;gap:6px;margin-top:1rem}.step-buttons button {background:#eee6f7;color:#382546}.step-buttons button[aria-pressed=true]{background:#382546;color:white}
+.guide details {border-top:1px solid var(--line);padding:1rem 0;font-size:1rem}.guide details:first-of-type {margin-top:1rem}
+@media(prefers-reduced-motion:no-preference){.step-content{animation:paper-rise .2s ease-out}}
+@media(max-width:680px){.tour,.entry-grid {grid-template-columns:1fr}}
+.overview {display:flex;gap:1.25rem;flex-wrap:wrap;padding:1rem;background:#f1eaf8;border-radius:6px}.overview strong{font-size:1.4rem}
+
+.management section {border-top:1px solid var(--line);padding:1.25rem 0}
+.management meter {width:min(60%,16rem);accent-color:#7c5cb6}
+.system-path {display:flex;flex-wrap:wrap;gap:1.2rem;list-style:none;padding:0}
+.system-path li {position:relative;border:1px solid var(--line);border-radius:6px;background:#f8f6fb;padding:1rem}
+.system-path li+li::before {content:'\2192';position:absolute;left:-1.1rem}
+.system-path small {display:block;margin-top:.35em}
+@media(max-width:600px){.system-path {display:grid}.system-path li+li::before{content:'\2193';top:-1.25rem;left:1rem}}
