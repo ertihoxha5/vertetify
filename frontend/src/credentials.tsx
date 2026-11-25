@@ -5,7 +5,7 @@ import { RegistryHeader } from './identity'
 import { api } from './api'
 import { Management } from './access'
 type Item = {id:string, snapshot:Record<string,string>, state:string, reference:string|null,version:number|null,last_matched:string|null}
-type Role = 'registrar'|'holder'|'auditor'|'admin'|'superadmin'
+import { Dashboard, type Role } from './dashboard'
 type ActiveShare = { id:string, expires:string, programme:string }
 const example = {subject_display_name:'Drita Demo',program_name:'Shkencë Kompjuterike',award_name:'BSc',award_date:'2026-06-30'}
 const labels = {subject_display_name:'Synthetic graduate',program_name:'Programme',award_name:'Award',award_date:'Award date'}
@@ -60,20 +60,21 @@ export function Credentials() {
   const walletItem = role === 'holder' ? items.find(i=>i.id===detailKey) : undefined
   const receipt = items.find(item => item.id === selected)
   useEffect(() => { if (receipt && !detail.current?.open) detail.current?.showModal() }, [receipt])
-  return <section className="access-panel"><p className="eyebrow">{role ? institution : 'Account access'}</p><h2>{role ? role === 'holder' ? 'Graduate wallet' : role === 'registrar' ? 'Registry evidence' : role==='superadmin' ? 'Platform operations' : role==='admin' ? 'University administration' : 'Institution workspace' : 'Staff and graduate sign-in'}</h2>
-    {!role ? <form onSubmit={signIn}>
+  if (!role) return <section className="access-panel"><p className="eyebrow">Account access</p><h1>Staff and graduate sign-in</h1><form onSubmit={signIn}>
       <label>Fixture account<select name={account==="invited"?undefined:"member"} value={account} onChange={e=>setAccount(e.target.value)}><option value="fixture-registrar">Registrar · Juniper Valley</option><option value="fixture-holder">Graduate · Juniper Valley</option><option value="fixture-auditor">Auditor · Alder Ridge</option><option value="fixture-operator">Platform operator</option><option value="invited">Invited account</option></select></label>
       {account==="invited" && <label>Account ID<input required name="member" autoComplete="username"/></label>}
       <label>Local password<input type="password" name="password" placeholder="Enter your local password" required autoComplete="current-password"/></label>
-      <button disabled={busy}>Sign in <span aria-hidden="true">↗</span></button>{account!=="invited" && <details><summary>Find my local password</summary><p>Run this in the project terminal and enter the result above.</p><code>docker compose exec -T web python flows.py {account}</code></details>}</form> : <>
-      <p>Signed in as {role}. <button disabled={busy} onClick={()=>run(async()=>{await api('session','DELETE');resetSession()})}>Sign out</button></p>
+      <button disabled={busy}>Sign in <span aria-hidden="true">↗</span></button>{account!=="invited" && <details><summary>Find my local password</summary><p>Run this in the project terminal and enter the result above.</p><code>docker compose exec -T web python flows.py {account}</code></details>}</form><p role="status">{message}</p></section>
+  const titles = {holder:'Graduate wallet',registrar:'Registry evidence',admin:'University administration',superadmin:'Platform operations',auditor:'Institution workspace'}
+  return <Dashboard role={role} institution={institution} title={titles[role]} busy={busy}
+    onLogout={()=>void run(async()=>{await api('session','DELETE');resetSession()})}>
       {(role==='admin' || role==='superadmin') && <Management role={role}/>}
       {role==='registrar' && <div className="overview" aria-label="Institution overview"><span><strong>{items.length}</strong> credentials</span><span><strong>{items.filter(i=>i.state==='issued').length}</strong> issued</span><span><strong>{items.filter(i=>i.state==='review').length}</strong> in review</span></div>}
-      {role==='registrar' && <details className="issue-form"><summary>Issue a diploma</summary><form onSubmit={e=>{e.preventDefault(); const fields=Object.fromEntries(new FormData(e.currentTarget)); void run(async()=>{await api('diplomas','POST',fields);await refresh()})}}>
+      {role==='registrar' && <details className="issue-form" id="issue"><summary>Issue a diploma</summary><form onSubmit={e=>{e.preventDefault(); const fields=Object.fromEntries(new FormData(e.currentTarget)); void run(async()=>{await api('diplomas','POST',fields);await refresh()})}}>
         <label>Graduate account<select name="holder" required>{holders.map(h=><option key={h}>{h}</option>)}</select></label>
         {Object.entries(example).map(([k,v])=><label key={k}>{labels[k as keyof typeof labels]}<input required name={k} defaultValue={v} type={k==='award_date'?'date':'text'}/></label>)}
         <button disabled={busy || !holders.length}>{holders.includes("fixture-holder") ? "Create draft for fixture holder" : "Create diploma draft"}</button></form></details>}
-      {role==='registrar' && <section className="records"><h3>Institution credentials</h3>
+      {role==='registrar' && <section className="records" id="records"><h3>Institution credentials</h3>
         <p>Select a credential to inspect its issuance record.</p>
         <table><thead><tr><th>Credential</th><th>Issue date</th><th>State</th></tr></thead><tbody>
         {items.map(item=><tr key={item.id}><td><button className="record-link" onClick={()=>setSelected(item.id)}>{item.snapshot.award_name} &middot; {item.snapshot.program_name}<small>{item.id}</small></button></td>
@@ -86,6 +87,8 @@ export function Credentials() {
             receipt.state==='review' ? 'An operator must review the evidence before issuance.' : receipt.state==='registered' ? 'Receipt recorded. Independent readback is pending.' : receipt.state==='draft' ? 'Ready for registrar confirmation.' : 'Issuance is pending.'}</p>
           {receipt.state==='draft' && <button disabled={busy} onClick={()=>run(async()=>{await api('diplomas/'+receipt.id+'/issue','POST');await refresh();detail.current?.close()})}>Confirm issuance</button>}
           <button className="secondary" onClick={()=>detail.current?.close()}>Close details</button></>}</dialog></section>}
+      {role==='holder' && <div className="overview"><span><strong>{items.length}</strong> diplomas</span><span><strong>{shares.length}</strong> {detailKey ? 'active links for this diploma' : 'active verification links'}</span></div>}
+      {role==='holder' && <h2 id="wallet">My diplomas</h2>}
       {role==='holder' && <p>Each share reveals the award, programme, award date and issuer. Your name stays private.</p>}
       {role==='holder' && detailKey && <><a href="/?workspace&graduate">Back to wallet</a>{!walletItem && <p>Credential unavailable for this account.</p>}</>}
       {role!=='registrar' && (detailKey ? items.filter(i=>i.id===walletItem?.id) : items).map(i=><article key={i.id}><div data-credential={i.id}><strong>{i.snapshot.award_name} · {i.snapshot.program_name}</strong>
@@ -98,13 +101,13 @@ export function Credentials() {
         <p><a href={link} target="_blank" rel="noreferrer">Open verification link</a></p>
         <button disabled={busy} onClick={()=>run(async()=>{await navigator.clipboard.writeText(link);setMessage('Verification link copied.')})}>Copy link</button>{' '}
         <button disabled={busy} onClick={()=>run(async()=>{await api('shares/disable','POST',{token:link.split('#t=')[1]});setLink('');setMessage('Share disabled.');await refresh()})}>Disable this link</button></div>}
-      {role==='holder' && <div className="share-list"><h3>Active verification links</h3>
+      {role==='holder' && <div className="share-list" id="sharing"><h3>Active verification links</h3>
         {shares.length===0 ? <p>No active links.</p> : shares.map(share=><article key={share.id}>
           <div><strong>{share.programme}</strong><small>Link {share.id.slice(0,8)} · Expires {new Date(share.expires).toLocaleString()}</small></div>
           <button className="secondary" disabled={busy} aria-label={'Disable link '+share.id.slice(0,8)} onClick={()=>run(async()=>{
             await api('shares/'+share.id,'DELETE');setLink('');setMessage('Share disabled.');await refresh()
           })}>Disable link</button></article>)}</div>}
-    </>}<p role="status">{message}</p></section>
+    <p role="status">{message}</p></Dashboard>
 }
 
 export function Verifier(){

@@ -20,13 +20,14 @@ function App() {
         mode === 'simulator' ? 'Local simulator' : 'Unknown environment')
     }).catch(() => setSource('Environment unavailable'))
   }, [])
-  return <><RegistryHeader/><main className={workspace || access ? 'workspace' : 'landing'}>
+  return <><RegistryHeader workspace={workspace}/><main className={workspace || access ? 'workspace' : 'landing'}>
     {access ? <InstitutionAccess/> : workspace ? <Credentials/> : new URLSearchParams(location.search).has("how") ? <ProductGuide/> : <>
-      <section className="hero"><div className="hero-copy">
+      <section className="hero"><div className="hero-copy"><p className="eyebrow">Academic credential registry</p>
         <h1><span>Digital diplomas.</span><em>Verifiable by anyone.</em></h1>
         <p className="intro">Universities issue. Graduates share. Anyone with a shared link can verify.</p>
         <div className="actions"><a href="/verify">Verify a diploma</a><a href="/?workspace">Staff and graduate sign-in</a><a href="/?access">Request institution access</a></div>
       </div><DiplomaArtwork/></section>
+      <nav className="contents" aria-label="On this page"><a href="#how">The workflow</a><a href="#evidence">Inside a diploma</a><a href="#entry">Find your workspace</a></nav>
       <ProductGuide/></>}
     <footer><span>{source}</span><span>Synthetic credentials only</span></footer></main></>
 }

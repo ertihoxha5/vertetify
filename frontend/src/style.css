@@ -199,3 +199,49 @@ button:hover {background:#50375f}
 .system-path li+li::before {content:'\2192';position:absolute;left:-1.1rem}
 .system-path small {display:block;margin-top:.35em}
 @media(max-width:600px){.system-path {display:grid}.system-path li+li::before{content:'\2193';top:-1.25rem;left:1rem}}
+.dashboard {display:grid;grid-template-columns:minmax(175px,220px) minmax(0,1fr);min-height:65vh;background:#fffdfb;border:1px solid var(--line)}
+.dash-rail {padding:28px 20px;background:#241b38;color:#f7f2fa;align-self:stretch}
+.dash-rail .eyebrow {color:#d4bbeb}.dash-rail strong{display:block;font:1.55rem/1.15 Georgia,serif}.dash-rail small{display:block;margin:.65rem 0;color:#d8cbe1}
+.dash-rail nav {display:grid;gap:3px;margin:2rem 0;border-top:1px solid #64596f;padding-top:1rem}
+.dash-rail nav a,.rail-exit {display:block;text-align:left;color:white;border:0;border-radius:0;padding:9px 0;font-size:.9rem;background:transparent}
+.dash-rail nav a:hover,.rail-exit:hover {color:#e6cafa;text-decoration:underline;background:transparent}
+.dash-body {min-width:0;padding:clamp(18px,3vw,44px)}
+.dash-body .record-link small {display:block;margin-top:.25rem;font-size:.75rem;font-weight:400;color:var(--muted)}
+.dash-title {padding-bottom:1.4rem;border-bottom:1px solid var(--line);margin-bottom:1.25rem}
+.dash-title h1 {font-size:clamp(2.5rem,5vw,4.6rem)}
+.dash-body .overview {border-block:1px solid var(--line);border-radius:0;background:#faf7fc;display:flex;gap:0;margin:1rem 0 2rem;padding:0}
+.overview span {flex:1;padding:clamp(8px,1.4vw,20px);color:var(--muted);font-size:.84rem}
+.overview span+span {border-left:1px solid var(--line)}
+.overview span strong {display:block;color:var(--ink);font:2.4rem/1.15 Georgia,serif}
+.contents {display:flex;justify-content:center;flex-wrap:wrap;gap:clamp(16px,5vw,90px);padding:18px;border-bottom:1px solid var(--line);background:#eee8f3}
+.contents a,.contents a:last-child {border:0;padding:0;color:#483553;font-weight:600}
+.guide {max-width:1300px}
+.guide .tour,.guide .questions,.guide .disclosure {padding-block:clamp(44px,7vw,100px)}
+.guide h2 {font-size:clamp(2.15rem,4.2vw,4.2rem);line-height:1.05}
+.disclosure,.questions {display:grid;grid-template-columns:1fr 1.15fr;gap:clamp(30px,6vw,100px)}
+.disclosure>div>p {max-width:44ch}.disclosure em{color:#765884}
+.folio {background:#30223e;color:#faf7fb;padding:clamp(16px,2.8vw,36px);align-self:start}
+.folio-controls {display:flex;flex-wrap:wrap;gap:5px;margin-bottom:20px}
+.folio-controls button {color:#eee1f4;background:transparent;border:1px solid #897994}
+.folio-controls button[aria-pressed=true] {background:#f3ebf8;color:#30223e}
+.folio-sheet {background:#faf6f1;color:var(--ink);padding:clamp(15px,2.5vw,32px);border-top:3px double #9d84ab}
+.folio-sheet dl {grid-template-columns:1fr;gap:0}.folio-sheet dl div {display:flex;justify-content:space-between;gap:12px;padding:10px 0}
+.folio-sheet dd {margin:0;text-align:right}
+.guide .entry-grid {gap:0;border-block:1px solid #baaac8}.entry-grid>div {padding:15px clamp(15px,2.6vw,38px)}
+.entry-grid>div+div {border-left:1px solid var(--line)}.questions details:first-of-type {margin-top:0}
+@media(prefers-reduced-motion:no-preference){
+ .guide section.in-view>div,.guide section.in-view>h2 {animation:folio-enter .48s ease-out both}
+ .guide section.in-view>div:nth-child(2){animation-delay:65ms}
+ .folio-sheet {animation:folio-enter .24s ease-out}
+ .landing .hero .shadow-paper {animation:sheet-settle .95s ease-out}
+ .dash-title {animation:folio-enter .22s ease-out}
+ @keyframes folio-enter {from {opacity:.65;transform:translateY(12px)}to{opacity:1;transform:none}}
+ @keyframes sheet-settle {from {transform:translate(4%,16%) rotate(13deg)}to{transform:translate(6%,9%) rotate(7deg)}}
+}
+@media(max-width:750px){
+ .dashboard,.disclosure,.questions {grid-template-columns:1fr}
+ .dash-rail {padding:16px 20px}.dash-rail nav{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0 0;padding-top:4px}
+ .dash-rail strong{font-size:1.2rem}.rail-exit {padding:6px 0}
+ .entry-grid>div+div{border-left:0;border-top:1px solid var(--line)}
+ .contents a{font-size:.79rem}
+}

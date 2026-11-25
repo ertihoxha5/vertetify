@@ -1,5 +1,11 @@
 # Milestone review · 24 November 2026
 
+## Signed-in dashboard and homepage
+
+The workspace now opens directly into a role-specific dashboard after authentication. Its navigation links to the current account's records, sharing, team or operational tasks. The public homepage adds a section index, a keyboard-operated disclosure specimen, registry and accreditation explanations, and motion that respects reduced-motion preferences. [Homepage](evidence/dashboard/home.png) · [Registrar dashboard](evidence/dashboard/registrar.png).
+
+Edge at 390 and 1440 pixels passed the disclosure switch, reduced-motion, dashboard navigation, issuance form, sign-out and horizontal overflow checks. The wallet browser regression passed keyboard login, QR decoding, signed-out verification and reopening a disabled link. These checks used the existing local Compellio stack and synthetic records. Physical-phone acceptance remains pending.
+
 ## Institution access and workspace acceptance · 25 November
 
 Implementation `69cb3be` extends the previous redesign at `253247a`. Use the [personal walkthrough](manual-testing.md) for commands, fixture passwords and expected screens.
