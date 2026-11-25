@@ -79,6 +79,16 @@ Open the three PNGs in `docs/evidence/institution-access` to review the resultin
 
 ## Physical phone acceptance (Erti, pending)
 
+For an iPhone on the **same trusted Wi-Fi** without SSH, a temporary test bridge can serve the public verifier. Find the phone's IPv4 address under **Settings → Wi-Fi → ⓘ → IP Address**. In PowerShell, get the workstation's address with `Get-NetIPAddress -InterfaceAlias 'Wi-Fi' -AddressFamily IPv4`. Substitute the two actual private addresses:
+
+```powershell
+python scripts/phone_verifier.py --bind PC_WIFI_IP --phone IPHONE_WIFI_IP
+```
+
+Open the printed address ending in `/verify` in Safari. The bridge accepts the workstation and designated phone, serves public assets, and forwards verification to the existing loopback application. It exits after 20 minutes or Ctrl+C. Use synthetic shares only. Staff sign-in stays on the PC. Guest Wi-Fi isolation or the Windows firewall can prevent the phone from reaching the PC.
+
+For a paste test, create a share in the desktop wallet. In the copied link replace only `http://127.0.0.1:8184` with the printed phone-reachable origin, preserving `/verify#t=…`. Paste the resulting address into the Safari verifier. For a camera test the QR must encode this same phone-reachable URL. The original loopback QR applies only with the tunnel method below. Disable the share in the wallet after testing.
+
 The shipped web server accepts loopback hostnames. A phone on the same Wi-Fi cannot use the desktop's loopback address directly. If a trusted SSH service is already available on the development PC, use a phone SSH client with local port forwarding on the trusted LAN. On a phone with OpenSSH, substitute the workstation account and its private LAN hostname:
 
 ```sh

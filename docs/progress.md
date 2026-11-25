@@ -1,5 +1,11 @@
 # Milestone review · 24 November 2026
 
+## M5 clean-checkout rehearsal · 25 November 2026
+
+Candidate `d066123c46cb301d9d6734b71c649809c8fcdf83` cloned from the published GitHub repository into an empty temporary directory. The detached checkout was clean. `python scripts/setup.py` generated local settings. `python scripts/smoke.py` built the stack, reached readiness in 112.4 seconds, passed all 16 tests in 3.179 seconds, and completed the simulator journey and worker rehearsal.
+
+A separate Compose project then started the official Registry and Anvil with new volumes. Another fresh PostgreSQL volume and a private Docker network connected the candidate to that provider. Loopback ports were ephemeral to avoid disturbing the running demo. `docker compose exec -T web python journey.py` passed real issuance and anonymous verification. See the [sanitized TAR record](evidence/compellio-local.md). This was a same-workstation automated rehearsal. Separate reviewer sign-off and physical iPhone results remain pending.
+
 ## Signed-in dashboard and homepage
 
 The workspace now opens directly into a role-specific dashboard after authentication. Its navigation links to the current account's records, sharing, team or operational tasks. The public homepage adds a section index, a keyboard-operated disclosure specimen, registry and accreditation explanations, and motion that respects reduced-motion preferences. [Homepage](evidence/dashboard/home.png) · [Registrar dashboard](evidence/dashboard/registrar.png).

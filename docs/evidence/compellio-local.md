@@ -62,3 +62,15 @@ On 25 November 2026 the existing PostgreSQL and Compellio volumes were retained.
 | Registry checksum, v1 | `f6c48ae87c0fde8cc219accb9ad0c26acf778ee4b8ed36e30f5bd488deee5f0e` |
 | Independent local contract read | `f6c48ae87c0fde8cc219accb9ad0c26acf778ee4b8ed36e30f5bd488deee5f0e` |
 | Signed-out HTTP verification | `verified_local_chain`, 2026-11-25T16:42:24.936365Z. Only issuer ID, award, programme and award date were disclosed. |
+## M5 remote checkout · d066123
+
+| Check on an isolated fresh chain | Observed value |
+| --- | --- |
+| Mode, chain and successful verification | `compellio-local`, chain 31337, `verified_local_chain` at 2026-11-25T17:08:06.853822Z |
+| Issued synthetic diploma / issuer | `9eeda7d0-0dd2-497c-ad04-8ee31daa46b7` / juniper |
+| TAR, REST version and contract slot | `urn:tar:eip155.31337:0x5fbdb2315678afecb367f032d93f642f64180aa3`, version 1, slot 0 |
+| Registry receipt | `37ae01b8-9166-4479-af02-778905249967` |
+| Private diploma commitment embedded in TAR data | `c64506d5af06add6f6aa0151ac7b01137592917d4639dc82caf51b43f81f2af2` |
+| RFC 8785 TAR data SHA-256, Registry checksum and on-chain checksum | All three individually returned `2eec2bc1b2f767a301fa74deb91e3126af46bb47d3060d430e272d5f413b43fe` |
+
+The clean-clone application used the standard registrar/holder/anonymous HTTP journey. It checked the allowed public fields, disabled a link and confirmed that the sibling link still verified. The temporary provider, chain and application had their own volumes. Their TAR belongs to this rehearsal chain; a read against the regular demo chain does not reproduce this evidence.
