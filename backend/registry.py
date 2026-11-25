@@ -33,7 +33,7 @@ def request(url, body=None, expected=200):
     )
     try:
         with build_opener(ProxyHandler({}), NoRedirect()).open(
-            req, timeout=8
+            req, timeout=35 if expected == 201 else 8
         ) as response:
             if response.status != expected:
                 raise RegistryError("unexpected_response")

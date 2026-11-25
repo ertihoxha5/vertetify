@@ -1,10 +1,8 @@
-export function RegistryHeader({ source }: { source: string }) {
-  return <header className="masthead">
-    <div className="mast-inner">
-      <div className="wordmark"><i aria-hidden="true">V</i> Vertetify</div>
-      <span className="network"><span aria-hidden="true" />{source}</span>
-    </div>
-  </header>
+export function RegistryHeader({ source }: { source?: string }) {
+  return <header className="masthead"><div className="mast-inner">
+    <a className="wordmark" href="/" aria-label="Vertetify home"><img src="/vertetify-logo.png" width="2188" height="718" alt=""/></a>
+    <nav aria-label="Main navigation"><a href="/#how">How it works</a><a href="/verify">Verify a diploma</a><a href="/?workspace">Sign in</a></nav>
+  </div>{source && <div className="source-line">{source}</div>}</header>
 }
 
 export function DiplomaArtwork() {

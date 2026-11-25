@@ -19,6 +19,9 @@ const sourceName = (mode:string) => mode === 'compellio-local' ? 'Compellio · l
 
 export function Credentials() {
   const [role,setRole] = useState<Role|null>(null)
+  const [institution,setInstitution] = useState('')
+  const [selected,setSelected] = useState<string|null>(null)
+  const detail = useRef<HTMLDialogElement>(null)
   const [items,setItems] = useState<Item[]>([])
   const [shares,setShares] = useState<ActiveShare[]>([])
   const refreshSequence = useRef(0)
@@ -33,7 +36,7 @@ export function Credentials() {
     const result = await api('diplomas')
     const active = result.role === 'holder' ? await api('shares') : []
     if (sequence !== refreshSequence.current) return
-    setRole(result.role); setItems(result.items); setShares(active)
+    setInstitution(result.institution); setRole(result.role); setItems(result.items); setShares(active)
   }
   useEffect(()=>{ refresh().catch(()=>{}) },[])
   useEffect(()=>{
@@ -41,9 +44,13 @@ export function Credentials() {
     const timer = window.setTimeout(()=>refresh().catch(()=>setMessage('Refresh to check issuance.')),3000)
     return ()=>clearTimeout(timer)
   },[items])
+  function resetSession() {
+    refreshSequence.current++
+    setRole(null); setItems([]); setShares([]); setLink(''); setSelected(null)
+  }
   async function run(action:()=>Promise<void>) {
     setBusy(true); setMessage('')
-    try { await action() } catch(error){ setMessage(error instanceof Error ? error.message : 'Request failed.') }
+    try { await action() } catch(error){ if (error instanceof Error && error.message === 'Sign-in required.') resetSession(); setMessage(error instanceof Error ? error.message : 'Request failed.') }
     finally {setBusy(false)}
   }
   function signIn(e:FormEvent<HTMLFormElement>){
@@ -51,18 +58,33 @@ export function Credentials() {
     const fields = Object.fromEntries(new FormData(e.currentTarget))
     void run(async()=>{await api('session','POST',fields); await refresh()})
   }
-  return <section className="access-panel"><p className="eyebrow">{role ? 'Account workspace' : 'Account access'}</p><h2>{role ? role === 'holder' ? 'Graduate wallet' : 'Institution workspace' : 'Staff and graduate sign-in'}</h2>
+  const receipt = items.find(item => item.id === selected)
+  useEffect(() => { if (receipt && !detail.current?.open) detail.current?.showModal() }, [receipt])
+  return <section className="access-panel"><p className="eyebrow">{role ? institution : 'Account access'}</p><h2>{role ? role === 'holder' ? 'Graduate wallet' : role === 'registrar' ? 'Registry evidence' : 'Institution workspace' : 'Staff and graduate sign-in'}</h2>
     {!role ? <form onSubmit={signIn}>
       <label>Fixture account<select name="member" value={account} onChange={e=>setAccount(e.target.value)}><option value="fixture-registrar">Registrar · Juniper Valley</option><option value="fixture-holder">Graduate · Juniper Valley</option><option value="fixture-auditor">Auditor · Alder Ridge</option></select></label>
       <label>Local password<input type="password" name="password" placeholder="Enter your local password" required autoComplete="current-password"/></label>
       <button disabled={busy}>Sign in <span aria-hidden="true">↗</span></button><details><summary>Find my local password</summary><p>Run this in the project terminal and enter the result above.</p><code>docker compose exec -T web python flows.py {account}</code></details></form> : <>
-      <p>Signed in as {role}. <button disabled={busy} onClick={()=>run(async()=>{await api('session','DELETE');refreshSequence.current++;setRole(null);setLink('');setItems([]);setShares([])})}>Sign out</button></p>
-      {role==='registrar' && <form onSubmit={e=>{e.preventDefault(); const fields=Object.fromEntries(new FormData(e.currentTarget)); void run(async()=>{await api('diplomas','POST',fields);await refresh()})}}>
+      <p>Signed in as {role}. <button disabled={busy} onClick={()=>run(async()=>{await api('session','DELETE');resetSession()})}>Sign out</button></p>
+      {role==='registrar' && <details className="issue-form"><summary>Issue a diploma</summary><form onSubmit={e=>{e.preventDefault(); const fields=Object.fromEntries(new FormData(e.currentTarget)); void run(async()=>{await api('diplomas','POST',fields);await refresh()})}}>
         {Object.entries(example).map(([k,v])=><label key={k}>{labels[k as keyof typeof labels]}<input required name={k} defaultValue={v} type={k==='award_date'?'date':'text'}/></label>)}
-        <button disabled={busy}>Create draft for fixture holder</button></form>}
-      {items.map(i=><article key={i.id}><div><strong>{i.snapshot.award_name} · {i.snapshot.program_name}</strong>
+        <button disabled={busy}>Create draft for fixture holder</button></form></details>}
+      {role==='registrar' && <section className="records"><h3>Institution credentials</h3>
+        <p>Select a credential to inspect its issuance record.</p>
+        <table><thead><tr><th>Credential</th><th>Issue date</th><th>State</th></tr></thead><tbody>
+        {items.map(item=><tr key={item.id}><td><button className="record-link" onClick={()=>setSelected(item.id)}>{item.snapshot.award_name} ? {item.snapshot.program_name}<small>{item.id}</small></button></td>
+          <td>{item.snapshot.award_date}</td><td><span className={'state state-'+item.state}>{item.state}</span></td></tr>)}</tbody></table>
+        <dialog ref={detail} onClose={()=>setSelected(null)} aria-labelledby="receipt-heading">{receipt && <>
+          <p className="eyebrow">{institution}</p><h2 id="receipt-heading">Evidence details</h2><p>{receipt.snapshot.award_name} ? {receipt.snapshot.program_name}</p>
+          <dl><div><dt>Credential</dt><dd>{receipt.id}</dd></div><div><dt>Issuance state</dt><dd>{receipt.state}</dd></div></dl>
+          <h3>Registry reference</h3>{receipt.reference ? <code>{receipt.reference}</code> : <p>No receipt recorded.</p>}
+          <p>{receipt.state==='issued' ? 'Evidence matched when the institution issued this diploma. Open a current graduate share for a fresh check.' :
+            receipt.state==='review' ? 'An operator must review the evidence before issuance.' : receipt.state==='registered' ? 'Receipt recorded. Independent readback is pending.' : receipt.state==='draft' ? 'Ready for registrar confirmation.' : 'Issuance is pending.'}</p>
+          {receipt.state==='draft' && <button disabled={busy} onClick={()=>run(async()=>{await api('diplomas/'+receipt.id+'/issue','POST');await refresh();detail.current?.close()})}>Confirm issuance</button>}
+          <button className="secondary" onClick={()=>detail.current?.close()}>Close details</button></>}</dialog></section>}
+      {role==='holder' && <p>Each share reveals the award, programme, award date and issuer. Your name stays private.</p>}
+      {role!=='registrar' && items.map(i=><article key={i.id}><div data-credential={i.id}><strong>{i.snapshot.award_name} · {i.snapshot.program_name}</strong>
         <p>{i.snapshot.subject_display_name} · {i.snapshot.award_date}</p><span className={'state state-'+i.state}>{i.state}</span>{i.reference && <details><summary>Registry reference</summary><code>{i.reference}</code></details>}</div>
-        {role==='registrar' && i.state==='draft' && <button disabled={busy} onClick={()=>run(async()=>{await api('diplomas/'+i.id+'/issue','POST');await refresh()})}>Confirm issuance</button>}
         {role==='holder' && <button disabled={busy} onClick={()=>run(async()=>{const r=await api('diplomas/'+i.id+'/share','POST');setLink(location.origin+'/verify#t='+r.token);await refresh()})}>Share award, programme, date and institution</button>}</article>)}
       {!items.length && <p>No diplomas available for this account.</p>}
       {link && <div className="share-panel"><h3 tabIndex={-1} ref={sharePanel}>Verification link · 7 days</h3><QRCodeSVG value={link} size={144} title="Verification link QR code"/>
@@ -80,27 +102,38 @@ export function Credentials() {
 
 export function Verifier(){
   const [result,setResult] = useState<{status:string,source?:string,checked_at?:string,diploma?:Record<string,string>}>({status:'Checking proof…'})
+  const [input,setInput] = useState('')
+  const generation = useRef(0)
   useEffect(()=>{
-    let sequence = 0
     function checkLink() {
-      const current = ++sequence
+      const current = ++generation.current
       const token = new URLSearchParams(location.hash.slice(1)).get('t')
       history.replaceState(null,'',location.pathname)
-      if (!token) { setResult({status:'Reopen the original verification link.'});return }
+      if (!token) { setResult({status:'Paste the link shared by the graduate.'});return }
       setResult({status:'Checking proof…'})
       api('public/verify','POST',{token})
-        .then(value => { if (current === sequence) setResult(value) })
-        .catch(() => { if (current === sequence) setResult({status:'Proof unavailable'}) })
+        .then(value => { if (current === generation.current) setResult(value) })
+        .catch(() => { if (current === generation.current) setResult({status:'Proof unavailable'}) })
     }
     checkLink()
     window.addEventListener('hashchange',checkLink)
-    return () => { sequence++; window.removeEventListener('hashchange',checkLink) }
+    return () => { generation.current++; window.removeEventListener('hashchange',checkLink) }
   },[])
   const states:Record<string,string> = {verified_local_chain:'Registry and local blockchain evidence match',matched_simulator:'Local simulator records match',link_unavailable:'Link expired, disabled or unavailable',proof_unavailable:'Registry proof unavailable',evidence_mismatch:'Evidence mismatch',not_found:'Registry record missing'}
   const positive = result.status==='verified_local_chain' || result.status==='matched_simulator'
   const fieldNames:Record<string,string> = {award_name:'Award',program_name:'Programme',award_date:'Award date',issuer_id:'Issuer identifier'}
   return <><RegistryHeader source={result.source ? sourceName(result.source) : 'Public verification'}/><main className="verify">
-    <p className="eyebrow">Synthetic diploma</p><h1>Credential <em>verification</em></h1>
+    <p className="eyebrow">Public verification</p><h1>Verify a diploma</h1>
+    <form onSubmit={event=>{
+      event.preventDefault()
+      try {
+        const url = new URL(input.trim())
+        if (url.origin !== location.origin || url.pathname !== '/verify' || url.username || url.password || url.search || !/^#t=[A-Za-z0-9_-]{43}$/.test(url.hash)) throw new Error()
+        setInput('');location.hash=url.hash
+      } catch {
+        generation.current++;setResult({status:'Enter a verification link from this Vertetify site.'})
+      }
+    }}><label>Verification link<input value={input} onChange={event=>setInput(event.target.value)} required autoComplete="off" spellCheck={false}/></label><button>Verify</button></form>
     <section className={'proof-card '+(positive?'positive':'neutral')} aria-live="polite"><h2>{states[result.status] || result.status}</h2>
     {result.checked_at && <p className="checked">Checked <time dateTime={result.checked_at}>{new Date(result.checked_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'long'})}</time></p>}
     {positive && result.diploma && <dl>{Object.entries(result.diploma).map(([k,v])=><div key={k}><dt>{fieldNames[k] || k}</dt><dd>{v}</dd></div>)}</dl>}</section></main></>

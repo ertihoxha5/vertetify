@@ -114,6 +114,7 @@ def diplomas(req: Request):
         ).fetchall()
         return {
             "role": role,
+            "institution": db.execute("SELECT name FROM tenants WHERE id=%s", (tenant,)).fetchone()[0],
             "items": [
                 {"id": k, "snapshot": p, "state": s, "reference": r}
                 for k, p, s, r in rows

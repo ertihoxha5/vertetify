@@ -1,6 +1,9 @@
 """Functional HTTP rehearsal with synthetic accounts. Emits only sanitized proof metadata."""
 
 import argparse
+import hashlib
+
+import rfc8785
 import http.cookiejar
 import json
 import time
@@ -133,6 +136,13 @@ def rehearse(origin):
             snapshot, nonce = db.execute(
                 "SELECT snapshot,nonce FROM diplomas WHERE id=%s", (key,)
             ).fetchone()
+        evidence["institution"] = snapshot["issuer_id"]
+        evidence["application_commitment"] = commitment(snapshot, nonce)
+        record = registry.request(f"{registry.endpoints()[0]}/version/{item['reference']}:1")
+        evidence["receipt"] = record.get("receipt")
+        evidence["jcs_payload_sha256"] = hashlib.sha256(rfc8785.dumps(record["data"])).hexdigest()
+        evidence["registry_checksum"] = record["checksum"][2:].lower()
+        evidence["contract_checksum"] = registry.contract_checksum(registry.TAR.fullmatch(item["reference"])[1], 1)
         evidence["envelope_sha256"] = registry.verify(
             item["reference"], commitment(snapshot, nonce)
         )
