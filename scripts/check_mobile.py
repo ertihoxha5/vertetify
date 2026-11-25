@@ -23,14 +23,19 @@ def main():
         text=True,
     ).strip()
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="msedge", headless=True)
+        browser = playwright.chromium.launch(
+            channel="msedge", headless=True, args=["--no-proxy-server"]
+        )
         holder = browser.new_page(viewport={"width": 390, "height": 844})
         evidence = Path(__file__).resolve().parents[1] / "docs" / "evidence"
         for width in (360, 390, 768, 1440):
             holder.set_viewport_size({"width": width, "height": 900})
             holder.emulate_media(reduced_motion="reduce")
-            holder.goto(origin)
+            holder.goto(origin, wait_until="domcontentloaded", timeout=60000)
             holder.get_by_role("link", name="Vertetify home").wait_for()
+            holder.wait_for_function(
+                "document.querySelector('.wordmark img')?.naturalWidth > 0"
+            )
             assert holder.locator(".wordmark img").evaluate(
                 "e => e.complete && e.naturalWidth > 0"
             )
@@ -39,7 +44,7 @@ def main():
             )
             assert holder.evaluate("document.documentElement.scrollWidth <= innerWidth")
             if width == 1440:
-                holder.screenshot(path=evidence / "home-desktop.png")
+                holder.screenshot(path=evidence / "home-desktop.png", full_page=True)
         holder.set_viewport_size({"width": 390, "height": 844})
         holder.get_by_role("link", name="Staff and graduate sign-in").click()
         holder.get_by_label("Fixture account").focus()
@@ -64,9 +69,13 @@ def main():
         verifier = browser.new_page(viewport={"width": 320, "height": 640})
         try:
             verifier.goto(origin + "/verify")
-            verifier.get_by_label("Verification link").fill("https://example.invalid/verify#t=test")
+            verifier.get_by_label("Verification link").fill(
+                "https://example.invalid/verify#t=test"
+            )
             verifier.get_by_role("button", name="Verify", exact=True).click()
-            verifier.get_by_text("Enter a verification link from this Vertetify site.").wait_for()
+            verifier.get_by_text(
+                "Enter a verification link from this Vertetify site."
+            ).wait_for()
             assert verifier.locator("dl").count() == 0
             verifier.get_by_label("Verification link").fill(link)
             verifier.get_by_role("button", name="Verify", exact=True).click()
@@ -76,7 +85,7 @@ def main():
             assert verifier.evaluate(
                 "document.documentElement.scrollWidth <= window.innerWidth"
             )
-            verifier.screenshot(path=evidence / "verifier-mobile.png")
+            verifier.screenshot(path=evidence / "verifier-mobile.png", full_page=True)
             assert "#t=" not in verifier.url
             assert "Drita Demo" not in verifier.locator("body").inner_text()
         finally:
@@ -108,7 +117,8 @@ def main():
             page.get_by_role("button", name="Sign in").click()
             if account == "fixture-registrar":
                 page.get_by_role("heading", name="Registry evidence").wait_for()
-                page.locator(".record-link").first.click()
+                row = page.locator(".record-link")
+                (row.filter(has_text=key) if key else row.first).click()
                 page.get_by_role("dialog").wait_for()
                 page.screenshot(path=evidence / "registrar-receipt.png")
                 page.keyboard.press("Escape")

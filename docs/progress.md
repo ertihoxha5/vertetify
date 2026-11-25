@@ -1,5 +1,30 @@
 # Milestone review · 24 November 2026
 
+## Candidate acceptance on 25 November 2026
+
+Baseline `5b08fb9`, implementation `5782da2`, acceptance candidate `bc47642`. This section supersedes the earlier milestone snapshots below. The [official requirements matrix](challenge.md), [Registry evidence](evidence/compellio-local.md) and [manual review checklist](manual-testing.md) cover different parts of acceptance.
+
+| Task | Status | Change and evidence | Remaining dependency |
+| --- | --- | --- | --- |
+| M0 CH-01 and M1 ENG-05 | Completed for baseline | Current organizer downloads matched archived files byte for byte. Baseline production build compiled 31 modules. Baseline smoke passed 14 tests in 0.922 s and both simulator rehearsals. | See M7 for final delivery. |
+| M2 DOM-02, local identity | Completed for local fixture policy | Expanded PostgreSQL tests and role journey exercise membership, expiry, logout, same-institution non-owner, second institution, link expiry, disabled links and limited disclosure. | Hosted identity, MFA and operational security remain open plan items. |
+| M3 REG-03 to REG-07 | Completed for local candidate | First baseline POST lost its response. The documented find operation returned one matching TAR; the read-only reconciliation matched all evidence. A longer bounded registration timeout preserves serialized, single-attempt writes. Fresh candidate evidence linked above. | Chain operator controls this local chain. |
+| M4 UI-01 to UI-05 | Completed for desktop and emulated screens | Supplied PNG, verifier-first landing page, registrar table and keyboard-dismissable receipt, graduate disclosure and same-origin paste. Edge exercised the three roles and public verifier. | Physical phone check under M5. |
+| M5 QA | In Progress | Automated checks, screenshots, failure-state fixtures and owner walkthrough. | Physical phone and separate clean-checkout reviewer pending. |
+| M6 / M7 | In Progress / Pending | Existing report and video describe prior UI. | Finalize materials at project end, verify recipient access, deliver and retain confirmation. |
+
+Final candidate simulator smoke: fresh stack ready in 63.5 seconds, 15 tests passed in 0.895 seconds, HTTP journey and worker rehearsal passed. TypeScript production build and Ruff passed. Two Edge runs exceeded the navigation load timeout. Direct requests to HTML, JS, CSS, PNG and workspace returned HTTP 200; the test now waits for DOM and logo readiness and runs the loopback browser directly. The ensuing full browser journey passed. Screenshots contain synthetic records only.
+
+### Access matrix from deployed rules
+
+| Actor | Private list and operations | Evidence |
+| --- | --- | --- |
+| Juniper registrar | Lists institution's credentials in this mode, creates synthetic drafts, confirms issuance for own institution. | HTTP journey, record table and dialog in Edge. |
+| Juniper graduate | Lists own issued diplomas; creates, lists and disables own shares. Same-tenant sibling holder denied sharing another graduate's diploma. | Isolated two-holder check, share lifecycle across sign-out, wallet browser test. |
+| Alder auditor | Authenticated workspace with empty diploma list. Cannot issue or manage Juniper shares. | Auditor sign-in and empty UI, HTTP role denials. |
+| Anonymous | Private endpoints require a session. A valid capability and current evidence allow only award, programme, award date and issuer ID. | Anonymous share journey, expiry, disabled link, pending and mismatched evidence tests. |
+| Changed or expired session | Membership rechecked on each call. Idle limit 30 minutes, absolute limit eight hours, logout invalidates the stored session. | Idle expiry and changed role tested; absolute-time condition reviewed in `flows.actor`. |
+
 ## 25 November · Workspace and graduate share management
 
 The verified registry implementation and competition materials are preserved in `486bca2` and `97d8501`. Commit `c321571` adds opt-in database access from a desktop SQL client. A password-authenticated host connection to PostgreSQL 16.16 on loopback port 55432 returned the expected database, user and two synthetic institutions.

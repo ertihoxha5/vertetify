@@ -8,6 +8,8 @@ Verifying a diploma can mean contacting the issuing university and waiting for a
 
 ## Credential workflow
 
+Open [the homepage](http://127.0.0.1:8184) for the environment label, [the public verifier](http://127.0.0.1:8184/verify) to paste a graduate's share, or [the workspace](http://127.0.0.1:8184/?workspace) for registrar, graduate and auditor sign-in. The [candidate walkthrough](docs/manual-testing.md) includes the physical-phone and independent reviewer checks.
+
 1. An authorized university registrar issues a synthetic diploma.
 2. Vertetify registers a cryptographic proof through the Compellio Registry API.
 3. The graduate reviews the four disclosure fields and shares an expiring QR link.

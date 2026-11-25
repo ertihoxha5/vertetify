@@ -19,7 +19,7 @@ Visit [Vertetify](http://127.0.0.1:8184) and [Registry Swagger](http://127.0.0.1
 
 ## Independently check a synthetic diploma
 
-1. Follow [the three-role walkthrough](../manual-testing.md). The header must show **Compellio · local test blockchain**. Confirm issuance once and wait for **issued**. Save the displayed TAR reference.
+1. Follow [the three-role walkthrough](../manual-testing.md). The home footer must show **Compellio · local test blockchain**. Confirm issuance once and wait for **issued**. Save the displayed TAR reference.
 2. In PowerShell inspect both the latest and first TAR representations. Paste the actual public TAR reference in place of the placeholder.
 
 ```powershell
