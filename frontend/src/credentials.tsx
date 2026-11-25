@@ -72,10 +72,10 @@ export function Credentials() {
       {role==='registrar' && <section className="records"><h3>Institution credentials</h3>
         <p>Select a credential to inspect its issuance record.</p>
         <table><thead><tr><th>Credential</th><th>Issue date</th><th>State</th></tr></thead><tbody>
-        {items.map(item=><tr key={item.id}><td><button className="record-link" onClick={()=>setSelected(item.id)}>{item.snapshot.award_name} ? {item.snapshot.program_name}<small>{item.id}</small></button></td>
+        {items.map(item=><tr key={item.id}><td><button className="record-link" onClick={()=>setSelected(item.id)}>{item.snapshot.award_name} &middot; {item.snapshot.program_name}<small>{item.id}</small></button></td>
           <td>{item.snapshot.award_date}</td><td><span className={'state state-'+item.state}>{item.state}</span></td></tr>)}</tbody></table>
         <dialog ref={detail} onClose={()=>setSelected(null)} aria-labelledby="receipt-heading">{receipt && <>
-          <p className="eyebrow">{institution}</p><h2 id="receipt-heading">Evidence details</h2><p>{receipt.snapshot.award_name} ? {receipt.snapshot.program_name}</p>
+          <p className="eyebrow">{institution}</p><h2 id="receipt-heading">Evidence details</h2><p>{receipt.snapshot.award_name} &middot; {receipt.snapshot.program_name}</p>
           <dl><div><dt>Credential</dt><dd>{receipt.id}</dd></div><div><dt>Issuance state</dt><dd>{receipt.state}</dd></div></dl>
           <h3>Registry reference</h3>{receipt.reference ? <code>{receipt.reference}</code> : <p>No receipt recorded.</p>}
           <p>{receipt.state==='issued' ? 'Evidence matched when the institution issued this diploma. Open a current graduate share for a fresh check.' :
