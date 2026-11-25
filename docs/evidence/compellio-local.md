@@ -46,3 +46,19 @@ All command paths below are relative to the repository root. Docker Desktop ran 
 The comparison proves integrity of the sealed synthetic record on this local chain. Institutional authority comes from Vertetify's fixture membership. The two-field TAR uses the guide's arbitrary-JSON interface. It has no registered profile TAR or @context. No credential revocation or update was performed. Disabling a share ends access through that link.
 
 During the baseline, the eight-second client deadline elapsed while the provider completed registration. A documented POST to /find with the synthetic commitment returned one matching record. The existing reconciliation command independently verified and attached it. Only a fresh diploma was used for each later acceptance journey. The candidate allows 35 seconds for the single write; uncertain outcomes still require review.
+## Institution-access candidate · 69cb3be
+
+On 25 November 2026 the existing PostgreSQL and Compellio volumes were retained. A fresh Juniper registrar-to-graduate-to-anonymous-verifier journey ran with `docker compose exec -T web python journey.py`.
+
+| Observation | Value |
+| --- | --- |
+| Mode and chain | `compellio-local`, 31337 |
+| Synthetic diploma | `3ba04dca-350b-4bbb-858d-980d23ca96d1`, issuer `juniper` |
+| TAR | `urn:tar:eip155.31337:0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0` |
+| Receipt | `dce152a5-d6ba-4ab4-9378-aec7c03637cf` |
+| Version and contract slot | REST 1, contract 0 |
+| Application commitment | `000a3b9a391a3fb2217a56ea3b51c000b879aa177cefcca8a60d9fadb7166235` |
+| Canonical TAR payload SHA-256 | `f6c48ae87c0fde8cc219accb9ad0c26acf778ee4b8ed36e30f5bd488deee5f0e` |
+| Registry checksum, v1 | `f6c48ae87c0fde8cc219accb9ad0c26acf778ee4b8ed36e30f5bd488deee5f0e` |
+| Independent local contract read | `f6c48ae87c0fde8cc219accb9ad0c26acf778ee4b8ed36e30f5bd488deee5f0e` |
+| Signed-out HTTP verification | `verified_local_chain`, 2026-11-25T16:42:24.936365Z. Only issuer ID, award, programme and award date were disclosed. |

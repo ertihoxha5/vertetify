@@ -17,6 +17,8 @@ Open [the homepage](http://127.0.0.1:8184) for the environment label, [the publi
 
 ## Project status
 
+The public [product guide](http://127.0.0.1:8184/?how) explains the synthetic issuance and sharing workflow. Universities can use [Institution access](http://127.0.0.1:8184/?access) to request approval. An operator reviews requests and privately hands off a single-use invitation. University administrators can then invite staff and graduates. See the [role-by-role walkthrough](docs/manual-testing.md) for sign-in commands and acceptance checks.
+
 The local app supports synthetic registrar drafts, queued issuance, a graduate wallet, QR sharing and anonymous verification. The default deployment uses a labeled simulator. A separate Compose override selects the official local Compellio Registry and blockchain. Consult the [progress and acceptance record](docs/progress.md) for actual validation results and remaining release gates.
 
 ## Stack

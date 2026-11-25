@@ -1,5 +1,33 @@
 # Personal walkthrough
 
+## Institution access, operations and graduate details
+
+From the repository root, start Docker Desktop with Linux containers. For first setup run `python scripts/setup.py` and `powershell -ExecutionPolicy Bypass -File scripts/start_registry.ps1`. With the external provider running, start Vertetify:
+
+```powershell
+docker compose -f compose.yaml -f compose.registry.yaml up -d --build --wait
+```
+
+1. At [How it works](http://127.0.0.1:8184/?how), use the Issue, Share and Verify buttons by keyboard or touch. The example is illustrative. The [public verifier](http://127.0.0.1:8184/verify) takes a real graduate share.
+2. Open [Institution access](http://127.0.0.1:8184/?access). Enter a fictional institution and a contact such as `registrar@example.test`. Submit, then bookmark the status page. A pending request has no member, session or credential privileges.
+3. In a separate private window open [Sign in](http://127.0.0.1:8184/?workspace). Choose **Platform operator** and retrieve the local password using `docker compose exec -T web python flows.py fixture-operator`. Review the request and confirm the intended recipient separately before selecting **Approve and invite**. Privately hand the displayed invitation to the recipient. The demo does not send email. Replacing an unredeemed first-admin invitation invalidates the previous one.
+4. Open the invitation in a separate browser context, activate it and save the generated account ID and password privately. Choose **Sign in with your account**. In **University administration**, invite one graduate and one registrar. Activate each invitation separately. Invitations expire after 48 hours. Email alone cannot activate an account. A staff permission change invalidates that member's existing sessions.
+5. Sign in as the invited registrar. Expand **Issue a diploma**, select the invited graduate's account ID, create the draft, inspect it and confirm issuance. Check the overview and receipt for the issued state, TAR version and last successful issuance match. A newly approved institution needs a graduate before it can draft. The existing Juniper fixture accounts are immediately usable.
+6. Sign in as the assigned graduate, choose **Open credential details**, inspect the four-field preview, then create a share. Only that diploma's active links appear on its detail page. Open the link or QR in a signed-out browser. Disable it in the wallet and reopen the original link to check the unavailable state.
+7. In the operator workspace choose **Refresh workspace**. The charts cover seven UTC calendar dates in the active environment. Issuance uses observed evidence-match events. Outcome counts start with migration 005; earlier public checks have no historical counters. The Registry indicator measures Swagger reachability, and the chain indicator checks the configured chain ID. Private diploma data is available through the scoped registrar and holder workflows.
+
+To repeat the automated checks, run these from the repository root with Python 3.12, Docker and Edge. The browser acceptance creates a new synthetic campus, activates its admin and creates a team invitation. Keep the fixture credentials, QR codes and invitation URLs out of screenshots.
+
+```powershell
+python scripts/smoke.py
+python -m pip install playwright==1.65.2 Pillow zxing-cpp==2.3.0
+python scripts/check_access.py
+$proof = docker compose exec -T web python journey.py
+if ($LASTEXITCODE -ne 0) { throw "Inspect the issuance before another registration." }
+$env:VERTETIFY_CHECK_CREDENTIAL = ($proof | ConvertFrom-Json).credential_id
+python scripts/check_mobile.py
+```
+
 Use Python 3.12, Docker Desktop with the Linux engine and PowerShell. Run commands from the project root. The first build needs internet access. For a simulator-only run:
 
 ```powershell
@@ -38,7 +66,7 @@ If sign-in fails, use the password from the web container for the current mode. 
 
 To stop Vertetify while preserving data, run `docker compose down` (include the registry override if used). Stop the separate provider with `docker compose -p vertetify-registry -f "$env:LOCALAPPDATA/VertetifyRegistry/docker-compose.yml" stop`.
 
-For the narrow-screen regression, start the actual provider and Vertetify on the default port and issue at least one synthetic diploma. In a Python virtual environment with Microsoft Edge installed, run `python -m pip install playwright==1.65.2` followed by `python scripts/check_mobile.py`. The test uses Microsoft Edge, checks four homepage widths and reduced motion, signs in with the keyboard, pastes a fresh share at 320 pixels, disables it and reopens it in the same verifier tab. It also opens and dismisses a registrar receipt and checks the second institution's empty account. To bind browser evidence to the exact real-chain HTTP journey, run the following once the actual stack is ready:
+For the narrow-screen regression, start the actual provider and Vertetify on the default port and issue at least one synthetic diploma. In a Python virtual environment with Microsoft Edge installed, run `python -m pip install playwright==1.65.2 Pillow zxing-cpp==2.3.0` followed by `python scripts/check_mobile.py`. The test uses Microsoft Edge, checks four homepage widths and reduced motion, signs in with the keyboard, pastes a fresh share at 320 pixels, disables it and reopens it in the same verifier tab. It also opens and dismisses a registrar receipt and checks the second institution's empty account. To bind browser evidence to the exact real-chain HTTP journey, run the following once the actual stack is ready:
 
 ```powershell
 $proof = docker compose exec -T web python journey.py
@@ -47,7 +75,7 @@ $env:VERTETIFY_CHECK_CREDENTIAL = ($proof | ConvertFrom-Json).credential_id
 python scripts/check_mobile.py
 ```
 
-Open the three PNGs in `docs/evidence` to review the resulting home, registrar receipt and public verifier. The script disables the link used for browser evidence.
+Open the three PNGs in `docs/evidence/institution-access` to review the resulting home, registrar receipt and public verifier. The script disables the link used for browser evidence.
 
 ## Physical phone acceptance (Erti, pending)
 

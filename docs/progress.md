@@ -1,5 +1,20 @@
 # Milestone review · 24 November 2026
 
+## Institution access and workspace acceptance · 25 November
+
+Implementation `69cb3be` extends the previous redesign at `253247a`. Use the [personal walkthrough](manual-testing.md) for commands, fixture passwords and expected screens.
+
+| Phase | Status and observed evidence |
+| --- | --- |
+| Public entry and guide (M4) | Production build passed. Edge at 390 and 1440 pixels activated the synthetic walkthrough with the keyboard, checked horizontal overflow and opened the public verifier. Hero motion and walkthrough transitions respect reduced motion. No live graduate capability is embedded in the example. |
+| University and graduate (M2/M4) | Scoped registrar counts, selected holder, matched version and last successful issuance check. Owner detail, disclosure, per-diploma active shares, QR and disable passed in Edge on the actual local chain. |
+| Institutional identity and operations (M2) | The disposable HTTP test submitted a pending institution, checked sign-in and write denial, approved and redeemed a one-time first-admin invitation, assigned registrar and graduate memberships and verified a registrar could neither list nor issue another institution's credential. Staff role change invalidated its session. The operator received aggregate results and an empty diploma list. Invites use a private manual handoff. |
+| Registry and release QA (M3/M5) | Fresh PostgreSQL stack ready in 32.0 s. All 16 tests passed in 4.091 s, then the simulator journey and worker rehearsal passed. The [new real-chain proof](evidence/compellio-local.md) records matching v1 checksums, a signed-out result and the exact TAR. The browser decoded the rendered QR to the same share URL and reopened the disabled link in the same tab. Controlled tests cover unavailable and expired outcomes. |
+
+`python scripts/check_access.py` also passed on the real stack in separate Edge contexts. A synthetic campus moved from pending to approved, its first administrator activated and signed in, and the team invitation screen and live chain-health panel worked.
+
+The [homepage](evidence/institution-access/home-desktop.png), [receipt](evidence/institution-access/registrar-receipt.png) and [public verifier](evidence/institution-access/verifier-mobile.png) captures use synthetic data. Mobile evidence is browser emulation. Physical-device testing and separate clean-checkout reviewer acceptance remain pending. Local synthetic identity is validated within the documented scope; hosted identity and operational account recovery remain open. Final report and video review remain M6 work and submission remains M7.
+
 ## Candidate acceptance on 25 November 2026
 
 Baseline `5b08fb9`, implementation `5782da2`, acceptance candidate `bc47642`. This section supersedes the earlier milestone snapshots below. The [official requirements matrix](challenge.md), [Registry evidence](evidence/compellio-local.md) and [manual review checklist](manual-testing.md) cover different parts of acceptance.

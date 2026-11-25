@@ -24,3 +24,8 @@ The default mode uses a PostgreSQL simulator receipt. The registry override uses
 | `scripts/`, Compose files | Startup, external provider setup, isolated test and browser verification |
 
 The [task tracker](progress.md) records security and release limitations. [Manual testing](manual-testing.md) covers the supported local identity and actor workflows.
+## Local identity and operations extension
+
+Migration 005 adds institution requests, 48-hour invitations, invited accounts, append-only access events and daily verification counts. Approval, first-admin invitation, activation and staff permission changes are transactional. The operator is a local fixture in a separate platform tenant. An approved institution has one first administrator; team invitations grant a registrar, auditor or holder role within that tenant. Staff permission changes invalidate active sessions. Generated account passwords and invitation capabilities are high-entropy random values. The database stores keyed digests for both, scoped to the environment. Public request status uses an opaque request UUID and returns only pending or approved.
+
+The registrar selects a holder from active membership in its own institution. Graduate detail pages select from the server's owner-scoped list, and the share-list query checks the same holder and tenant. The operator dashboard uses counts of issuance events and aggregate verification outcomes. Outcome counters contain only UTC day, registry mode, result and count. Registry health samples Swagger and chain identity independently. Hosted identity, contact verification, email delivery, account recovery and independent release acceptance remain outside the validated local flow.
