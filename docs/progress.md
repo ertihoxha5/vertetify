@@ -1,5 +1,29 @@
 # Milestone review · 24 November 2026
 
+## M5 release acceptance · 26 November 2026
+
+**Engineering checks passed on local candidate `b3b2071`. Independent acceptance is pending.** A live invalid verification request echoed the submitted marker in its HTTP 422 body before the fix. The candidate omits submitted values from validation responses and applies privacy headers to rejected origins.
+
+| Check | Observed outcome |
+| --- | --- |
+| QA-01 and QA-02, access and disclosure | A disposable PostgreSQL build reached readiness in 25.5 seconds. All 18 tests passed in 3.169 seconds, followed by the simulator HTTP and worker journeys. Coverage includes tenant and holder restrictions, absolute session expiry, replaced and expired invitations, and disabling a share during evidence retrieval. The last case withheld the diploma. Credential-level revocation remains unsupported. |
+| QA-03, response and log privacy | Invalid share, invitation and login inputs returned generic HTTP 422 responses. A missing origin returned 403. The live verification route also withheld the marker and returned `Cache-Control: no-store`. A 15-minute web/dispatcher log sample had zero matches for the fixture name, validation marker, current holder and database passwords, or a share fragment pattern. Neither password occurred in the 73 tracked files scanned. Scope was current file bytes and sampled logs. |
+| QA-04, resilience | Earlier outage, restart, uncertain-write and restore results are recorded below. The current isolated suite passed. The live outage and backup restore drills were last performed on earlier builds. |
+| QA-05, browser and latency | Edge exercised the home page at 360, 390, 768 and 1440 CSS pixels with reduced motion. Keyboard sign-in, holder detail, QR decode, anonymous verification at 320 pixels, receipt dialog dismissal and same-tab link disable passed. Ten sequential real-chain lookups of the same diploma all verified and disclosed only four fields. Median 0.636 s, nearest-rank p95 0.945 s. This measures a warm local stack with one caller. |
+
+From the repository root, with Docker running and the [local Registry stack](integrations/compellio.md) started, run:
+
+```powershell
+python scripts/smoke.py
+docker compose exec -T web python journey.py
+$env:VERTETIFY_CHECK_CREDENTIAL = Read-Host "Paste credential_id from journey.py"
+python scripts/check_mobile.py
+```
+
+The browser check uses Edge, Playwright, Pillow and zxing-cpp. Open [the local demo](http://127.0.0.1:8184) for the same flow. Sign in as the fixture holder, open the issued credential, choose **Share award**, and open the link in a private window. Expect **Registry and local blockchain evidence match**. Disable the link in the wallet and reopen it to see **Link expired, disabled or unavailable**. Fixture password commands and the [independent reviewer procedure](manual-testing.md#independent-reviewer-pending) are in the manual testing guide.
+
+The [candidate TAR evidence](evidence/compellio-local.md#m5-candidate--26-november-2026) records the same credential used by the browser and latency checks. A separate reviewer has yet to run this candidate from a clean checkout. A physical iPhone observation is optional for this pass and remains unperformed.
+
 ## M5 clean-checkout rehearsal · 25 November 2026
 
 Candidate `d066123c46cb301d9d6734b71c649809c8fcdf83` cloned from the published GitHub repository into an empty temporary directory. The detached checkout was clean. `python scripts/setup.py` generated local settings. `python scripts/smoke.py` built the stack, reached readiness in 112.4 seconds, passed all 16 tests in 3.179 seconds, and completed the simulator journey and worker rehearsal.

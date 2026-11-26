@@ -74,3 +74,21 @@ On 25 November 2026 the existing PostgreSQL and Compellio volumes were retained.
 | RFC 8785 TAR data SHA-256, Registry checksum and on-chain checksum | All three individually returned `2eec2bc1b2f767a301fa74deb91e3126af46bb47d3060d430e272d5f413b43fe` |
 
 The clean-clone application used the standard registrar/holder/anonymous HTTP journey. It checked the allowed public fields, disabled a link and confirmed that the sibling link still verified. The temporary provider, chain and application had their own volumes. Their TAR belongs to this rehearsal chain; a read against the regular demo chain does not reproduce this evidence.
+
+## M5 candidate · 26 November 2026
+
+Application and test revision `b3b2071`, on the existing local demo volumes. From the repository root, `docker compose exec -T web python journey.py` issued the record, read its version-specific TAR, compared the evidence and opened a holder-created share in an anonymous session.
+
+| Observation | Actual result |
+| --- | --- |
+| Mode, chain, anonymous result | `compellio-local`, EIP-155 chain 31337, `verified_local_chain` at 2026-11-26T11:23:00.162646Z |
+| Credential and institution | `6337ebcb-63a6-4a93-8200-d1b948b5cb36`, `juniper` |
+| TAR, version | `urn:tar:eip155.31337:0x9a676e781a523b5d0c0e43731313a708cb607508`, version 1 |
+| Registry receipt | `7b4f1b91-f778-42ef-8347-4aa5cdd9dd68` |
+| Application commitment embedded in TAR | `4daf97bc5dc823d9d07ec1fd93a0c0eb6db04acf5641c020a8d7f0a8e0f6b109` |
+| SHA-256 of RFC 8785 canonical TAR data | `36f8fbcc94337101e377a9f85271d5a74a6f36dfc050fb8ca7e7095157a33f2c` |
+| Registry checksum, version 1 | `36f8fbcc94337101e377a9f85271d5a74a6f36dfc050fb8ca7e7095157a33f2c` |
+| Local contract checksum, corresponding version | `36f8fbcc94337101e377a9f85271d5a74a6f36dfc050fb8ca7e7095157a33f2c` |
+| Anonymous disclosure | Issuer ID, award, award date and programme. After disable the result was `link_unavailable` and contained no diploma. |
+
+The comparison establishes integrity against this local chain. Academic accreditation and the accuracy of the original institutional assertion require separate evidence. The Edge wallet test decoded the displayed QR and verified this credential through the public page. See the [M5 tracker](../progress.md) for the bounded performance run, privacy regression and outstanding reviewer observation.
