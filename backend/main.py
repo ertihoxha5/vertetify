@@ -4,6 +4,7 @@ from typing import Literal
 
 import psycopg
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, FileResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -21,13 +22,20 @@ app.include_router(router)
 app.include_router(access_router)
 
 
+@app.exception_handler(RequestValidationError)
+async def invalid_request(req: Request, exc: RequestValidationError):
+    # Validation details may contain a submitted password, share token or invitation.
+    return JSONResponse({"detail": [{"loc": ["request"], "msg": "Invalid request.", "type": "value_error"}]}, status_code=422)
+
+
 @app.middleware("http")
 async def local_browser_policy(req: Request, call_next):
     if req.method not in ("GET","HEAD","OPTIONS") and (
         req.headers.get("origin") != str(req.base_url).rstrip("/") or req.headers.get("x-vertetify") != "workspace"
     ):
-        return JSONResponse({"detail":"Same-origin workspace request required."},status_code=403)
-    response = await call_next(req)
+        response = JSONResponse({"detail":"Same-origin workspace request required."},status_code=403)
+    else:
+        response = await call_next(req)
     response.headers.update({"Cache-Control":"no-store","Referrer-Policy":"no-referrer",
                              "X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY"})
     return response

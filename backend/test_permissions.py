@@ -17,6 +17,30 @@ from test_proof import VECTOR
     os.getenv("VERTETIFY_ISOLATED_TEST") == "1", "requires disposable PostgreSQL"
 )
 class SessionPolicyTests(unittest.TestCase):
+    def test_absolute_session_expiry_despite_recent_activity(self):
+        token = "absolute-limit-fixture"
+        request = Request({"type": "http", "headers": [
+            (b"cookie", f"vertetify_session={token}".encode())
+        ]})
+        with connect() as db:
+            try:
+                db.execute(
+                    """INSERT INTO demo_sessions (digest,tenant,member,role,started,touched)
+                       VALUES (%s,'juniper','fixture-registrar','registrar',
+                               now()-interval '7 hours 59 minutes',now())""",
+                    (keyed("session", token),),
+                )
+                self.assertEqual(actor(db, request)[2], "registrar")
+                db.execute(
+                    "UPDATE demo_sessions SET started=now()-interval '8 hours' WHERE digest=%s",
+                    (keyed("session", token),),
+                )
+                with self.assertRaises(HTTPException) as expired:
+                    actor(db, request)
+                self.assertEqual(expired.exception.status_code, 401)
+            finally:
+                db.rollback()
+
     def test_session_timeout_and_membership_change(self):
         request = Request(
             {
@@ -96,6 +120,14 @@ class SessionPolicyTests(unittest.TestCase):
                     share(other, holder)
                 self.assertEqual(denied.exception.status_code, 404)
                 token = Token(**share(mine, holder))
+                def disable_during_evidence(*args):
+                    db.execute("UPDATE diploma_shares SET disabled=true WHERE diploma=%s", (mine,))
+
+                with patch("flows.evidence", side_effect=disable_during_evidence):
+                    withheld = public_verify(token)
+                    self.assertEqual(withheld["status"], "link_unavailable")
+                    self.assertNotIn("diploma", withheld)
+                db.execute("UPDATE diploma_shares SET disabled=false WHERE diploma=%s", (mine,))
                 for failure, expected in [
                     ("registry_unavailable", "proof_unavailable"),
                     ("evidence_mismatch", "evidence_mismatch"),

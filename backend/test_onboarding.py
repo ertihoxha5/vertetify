@@ -4,6 +4,7 @@ import os
 import unittest
 
 from journey import Browser
+from flows import keyed
 from store import connect
 
 
@@ -49,6 +50,16 @@ class AccessJourney(unittest.TestCase):
         guest.call("diplomas", "POST", fields, 401)
         juniper.call(path + "/approve", "POST", expected=403)
         guest.call("access/operations", expected=401)
+        replaced = operator.call(path + "/approve", "POST")
+        expired = operator.call(path + "/approve", "POST")
+        guest.call("access/activate", "POST", replaced, 410)
+        with connect() as db:
+            updated = db.execute(
+                "UPDATE access_invitations SET expires=now()-interval '1 second' WHERE digest=%s",
+                (keyed("invite", expired["token"]),),
+            )
+            self.assertEqual(updated.rowcount, 1)
+        guest.call("access/activate", "POST", expired, 410)
         admin, _ = redeem(operator.call(path + "/approve", "POST"))
         operator.call(path + "/approve", "POST", expected=409)
         self.assertEqual(guest.call(path)["status"], "approved")
