@@ -1,5 +1,13 @@
 # Milestone review · 24 November 2026
 
+## Official Registry acceptance · 26 November 2026
+
+M3 Registry acceptance passed on `4703420`. The review found two gaps: new records had no registered profile reference, and the adapter accepted a TAR ID at creation without validating the other returned fields. New registrations now check the complete v1 response and bind the diploma to a verified, reusable profile TAR through `@context`. Previously issued records still verify against their original payload. The registrar drawer exposes the profile reference, and the public disclosure specimen explains its purpose.
+
+On the local chain an authorized registrar issued a fresh diploma, a holder shared it and an anonymous recipient verified it. Independent Foundry reads at block 21 matched both the Registry checksum and SHA-256 over the canonical TAR data. See the [acceptance record and screenshots](evidence/compellio-local.md#profile-compliance-acceptance), [guide traceability](requirements.md) and [Windows reproduction steps](integrations/compellio.md).
+
+The clean-install rehearsal caught a PostgreSQL migration error in `7a7c10b`. After correcting the profile singleton column, a fresh database reached readiness in 35.9 seconds and passed all 20 isolated tests, the simulator journey and worker checks. A live pre-profile record retained its original TAR and passed anonymous verification. The real-stack browser checks cover graduate sign-in, QR decode, signed-out results, disabling a share, scoped register search and receipt inspection. Physical-phone observation and independent human sign-off remain open.
+
 ## Frontend redesign · 26 November 2026
 
 The public navigation now connects the platform tour, workflow, university and graduate guides, privacy page, verifier, sign-in and access request. The four product previews are screenshots of the application rendered with isolated synthetic data. Their simulated result is explicitly labeled. The homepage also includes a disclosure specimen, evidence diagram and reduced-motion presentation.

@@ -106,3 +106,25 @@ From the rebuilt working tree based on `630cedb`, `docker compose exec -T web py
 | Embedded diploma commitment | `ab0acee0210ed2a9d58b3f717ebc1c901b2e03aa13f496e7d6773dfaf9645058` |
 | RFC 8785 TAR payload SHA-256, Registry checksum and local contract read | All three returned `fe7940485be3e13ce6da49aae4c87c59a368cfb6e07a3fbac01f6335c3ecbe6b` |
 | Signed-out verification | `verified_local_chain`, disclosing issuer, award, programme and award date |
+
+## Profile compliance acceptance
+
+Tested application commit `4703420c4ccd5ea3c1140894fb478cde496ec4aa` on 26 November 2026. Windows Docker Desktop ran the organizer's DCAP.Web deployment outside the source tree. The Registry and Anvil were running when inspected. PostgreSQL and Vertetify web reported healthy; the dispatcher was running. Only local loopback ports were published by these services.
+
+| Check and reproduction | Observed result |
+| --- | --- |
+| Runtime images, inspected with Docker | DCAP.Web `ghcr.io/compellio/dcap-web:latest` image ID `sha256:2ee35cf70ae2cfcec7a6b9350a32689fd66bcdacd194795902160be63cb78417`. Anvil `ghcr.io/foundry-rs/foundry:stable` image ID `sha256:043752653d5be351c71709091b3db97c4421c907eb40ea294195e7f532aadf46`. |
+| Live Swagger, GET /swagger/v1/swagger.json | IETF SATP Registry API 1.0. POST /api/v1/TAR declares 201. GET /api/v1/TAR/{tarID} and GET /api/v1/TAR/version/{tarVersionID} were present and exercised. PUT /api/v1/TAR/{id} is available to mutable applications. |
+| Fresh registrar → holder → signed-out verifier | `docker compose exec -T web python journey.py` returned `verified_local_chain` in `compellio-local` mode at 2026-11-26T12:07:47.311300Z. Juniper credential `69e4b5c9-deee-4e44-b67d-74eee2dfefaa`, receipt `ad93517d-347c-4062-a3c2-aa09478a12b2`. |
+| Diploma create response and readback | Application accepted HTTP 201 only after checking the returned id, version, data and checksum. Latest and version 1 GETs matched. TAR `urn:tar:eip155.31337:0xc6e7df5e7b4f2a278906862b61205850344d4e7d`. |
+| Profile binding | Diploma data contained `@context` equal to `urn:tar:eip155.31337:0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae`. Readback and independent cast at block 19 matched profile checksum `f61f2017eb8580ef329e0c1a2957f49bd4dc5e5216f2b348b98a1b88c198f0ce`. Profile reused across two fresh issuances. |
+| Embedded application commitment | `d025ae952bc45924cb09826e8eae7397822ae79e359b316d682ebcc1bac8390f`. This commits to the private diploma snapshot and nonce. |
+| Independently calculated digest | SHA-256 of RFC 8785 canonical bytes for the exact version-one TAR **data** object, including its context, type and commitment: `9059462eb11a93ae977adc058a0cc2fd3c777cc80ad185f13f7ac6091d1f9995`. |
+| Registry checksum from GET | `9059462eb11a93ae977adc058a0cc2fd3c777cc80ad185f13f7ac6091d1f9995`. |
+| Independent blockchain read | `scripts/check_tar.ps1` queried chain 31337, pinned block 21, read one contract version, and called `getChecksum(0)` with Foundry cast 1.5.1. Result `9059462eb11a93ae977adc058a0cc2fd3c777cc80ad185f13f7ac6091d1f9995`. All three matched. |
+| Persistence and compatibility | PostgreSQL had the same credential, Juniper issuer, issued state, profile TAR and checksum. Earlier diploma `70a18248-b091-4783-b8de-100cbc1ca515` retained a null profile reference, verified on the real chain through a new anonymous share, then the holder disabled that share. |
+| Public disclosure | Award, programme, award date and issuer ID. A disabled link withheld the diploma. [Public result](registry-compliance/verifier-mobile.png) · [Registrar evidence drawer](registry-compliance/registrar-receipt.png). |
+
+The isolated clean-volume smoke run reached readiness in 35.9 seconds and passed 20 tests in 3.529 seconds. Controlled fixtures covered unavailable or mismatched Registry evidence, pending issuance, changed version, wrong chain, uncertain writes, parallel workers, role and institution isolation, and expired or disabled links. The live chain stayed available during this run. The separate onboarding browser regression passed on the preceding application commit; the final correction changed only fresh-install SQL.
+
+The hashes above omit the 0x prefix for comparison. A Registry receipt is an application reference. No transaction hash was observed in this walkthrough. This proves integrity on the operator-controlled local chain. Accreditation, real-world identity and legal recognition require separate evidence. See the [traceability table](../requirements.md) and [independent reproduction instructions](../integrations/compellio.md).

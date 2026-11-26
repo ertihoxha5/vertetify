@@ -29,15 +29,27 @@ Invoke-RestMethod "$api/$id" | Select-Object id,version,checksum,data
 Invoke-RestMethod "${api}/version/${id}:1" | Select-Object id,version,checksum,data
 ```
 
-3. Inspect the envelope. Its two application fields are a versioned type and a salted diploma commitment. Names, programmes, dates and nonce stay in PostgreSQL.
+3. Inspect the envelope. For a newly issued diploma its fields are a versioned type, a salted diploma commitment and the registered diploma profile TAR ID in `@context`. Older diplomas retain the original two-field envelope. Names, programmes, dates and nonce stay in PostgreSQL.
 4. Open the holder's share in a separate private browser window. The verifier recomputes the diploma commitment, reads both TAR representations, hashes the RFC 8785 envelope and invokes the deployed contract's `getChecksum(uint256)` at slot 0 for REST version 1 using read-only Ethereum JSON-RPC. It requires chain ID 31337 and equality of all three checksums. Compare the displayed time and source. This checks integrity against a local chain controlled by its operator. Institutional accreditation and legal recognition need separate evidence.
-5. An automated run with fresh synthetic data is available below. It prints sanitized identifiers and a checksum only after completing the workflow.
+5. An automated run with fresh synthetic data is available below. It prints sanitized identifiers and all three checksums only after completing the workflow.
 
 ```powershell
 docker compose exec -T web python journey.py
 ```
 
+Run the following independent check from the repository root in PowerShell. It reads both Registry representations and uses Foundry's `cast` in the official chain container. This path does not import Vertetify's adapter. Supply the full TAR from the journey. Repeat with `profile_tar` to verify the referenced profile independently.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check_tar.ps1 -TarId $id
+```
+
+Expect `match: true`, version 1, slot 0 and the same 32-byte checksum in all three columns. New chains and new issuances produce different IDs. Open Swagger's GET latest and GET version operations for each ID. The diploma data contains the profile reference; the profile data defines the vocabulary and contains no student fields. The private application commitment is a different value embedded inside the hashed TAR payload.
+
+For a manual demo use the Juniper registrar and graduate roles. Obtain their local passwords privately with `docker compose exec -T web python flows.py fixture-registrar` and `docker compose exec -T web python flows.py fixture-holder`. In the registrar dashboard open **Issue a diploma**, keep the synthetic award and graduate, create the draft, select it and confirm issuance. Search its ID and open the receipt once it is issued. In the graduate wallet share that award and open the link in a private browser window. Expect the local-chain match heading and four academic fields. Disable the link and reopen it to confirm disclosure stops.
+
 ## Operational boundaries
+
+The first new real issuance provisions one application-defined root diploma profile with the same serialized Registry workflow. Later issuances reuse its persisted reference. This vocabulary is specific to Vertetify. The official README demonstrates an additional root-to-domain profile hierarchy for cultural assets. No cultural asset schemas or upstream code are embedded here. A profile write with an unknown outcome blocks new registrations. After finding the actual matching profile in the local Registry, use `docker compose exec -T web python registry_profile.py --recover KNOWN_PROFILE_TAR_ID` to verify and attach it. The command rejects replacement of an established reference. Existing pre-profile diplomas keep their original evidence path.
 
 The dispatcher durably marks dispatch before its single POST and stores the returned TAR ID before attempting readback. A PostgreSQL advisory lock serializes dispatch across this application's workers. A lost response or interrupted write goes to **review**. Investigate in the Registry's own records before further action. Use `docker compose exec -T web python reconcile.py CREDENTIAL_UUID KNOWN_TAR_ID` to reconcile a known candidate. It performs read-only verification and refuses a mismatch. An operation without a known matching TAR stays in review. A saved ID allows bounded read-only retries with backoff. Eight failed reads or a mismatching record move the operation to review. Missing, altered or unavailable proof suppresses all public fields. An unavailable registry never triggers simulator fallback.
 
