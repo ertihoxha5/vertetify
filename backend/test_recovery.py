@@ -48,7 +48,7 @@ class RecoveryTests(unittest.TestCase):
                 reconcile(self.key, self.ref)
         self.assertEqual(self.state(), ("review", None))
         with (
-            patch("registry.verify", return_value="matched"),
+            patch("registry.verify", return_value="ab" * 32),
             patch("registry.register") as post,
         ):
             reconcile(self.key, self.ref)
@@ -59,14 +59,15 @@ class RecoveryTests(unittest.TestCase):
     def test_two_dispatchers_send_one_write(self):
         with (
             patch("registry.register", return_value=self.ref) as post,
-            patch("registry.verify", return_value="matched"),
+            patch("registry.verify", return_value="ab" * 32),
         ):
             with ThreadPoolExecutor(2) as pool:
                 list(pool.map(lambda _: process(), range(2)))
             post.assert_called_once()
         self.assertEqual(self.state(), ("issued", self.ref))
         with connect() as db:
-            snapshot, nonce = db.execute(
-                "SELECT snapshot,nonce FROM diplomas WHERE id=%s", (self.key,)
+            snapshot, nonce, checksum = db.execute(
+                "SELECT snapshot,nonce,registry_checksum FROM diplomas WHERE id=%s", (self.key,)
             ).fetchone()
+        self.assertEqual(checksum, "ab" * 32)
         self.assertEqual(post.call_args.args, (commitment(snapshot, nonce),))

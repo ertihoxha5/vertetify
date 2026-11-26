@@ -4,12 +4,12 @@ import { RegistryHeader } from './identity'
 
 import { api } from './api'
 import { Management } from './access'
-type Item = {id:string, snapshot:Record<string,string>, state:string, reference:string|null,version:number|null,last_matched:string|null}
+type Item = {id:string, snapshot:Record<string,string>, state:string, reference:string|null,version:number|null,last_matched:string|null,registry_checksum?:string,mode?:string}
 import { Dashboard, type Role } from './dashboard'
 type ActiveShare = { id:string, expires:string, programme:string }
 const example = {subject_display_name:'Drita Demo',program_name:'Shkencë Kompjuterike',award_name:'BSc',award_date:'2026-06-30'}
 const labels = {subject_display_name:'Synthetic graduate',program_name:'Programme',award_name:'Award',award_date:'Award date'}
-const sourceName = (mode:string) => mode === 'compellio-local' ? 'Compellio · local test blockchain' : 'Local simulator'
+const sourceName = (mode:string) => mode === 'compellio-local' ? 'Compellio · local test blockchain' : mode==='simulator' ? 'Local simulator' : 'Unknown environment'
 
 export function Credentials() {
   const [role,setRole] = useState<Role|null>(null)
@@ -18,6 +18,14 @@ export function Credentials() {
   const [selected,setSelected] = useState<string|null>(null)
   const detail = useRef<HTMLDialogElement>(null)
   const [items,setItems] = useState<Item[]>([])
+  const [query,setQuery]=useState('')
+  const [filter,setFilter]=useState('')
+  const [page,setPage]=useState(0)
+  const [draft,setDraft]=useState(example)
+  const visibleRows=items.filter(i=>(!filter || i.state===filter) && [i.id,i.snapshot.program_name,i.snapshot.award_name,i.reference].join(' ').toLowerCase().includes(query.trim().toLowerCase()))
+  const pageCount=Math.ceil(visibleRows.length/12)
+  const currentPage=Math.min(page,Math.max(0,pageCount-1))
+  const [expired,setExpired]=useState<ActiveShare[]>([])
   const [shares,setShares] = useState<ActiveShare[]>([])
   const refreshSequence = useRef(0)
   const [message,setMessage] = useState('')
@@ -31,10 +39,11 @@ export function Credentials() {
     const result = await api('diplomas')
     const selectedId = new URLSearchParams(location.search).get('credential')
     const visible = result.items.some((item:Item)=>item.id===selectedId)
-    const active = result.role !== 'holder' || (selectedId && !visible) ? [] :
-      await api(selectedId ? 'shares?credential='+encodeURIComponent(selectedId) : 'shares')
+    const sharePath=selectedId ? 'shares?credential='+encodeURIComponent(selectedId) : 'shares'
+    const [active,ended]=result.role==='holder' && (!selectedId || visible) ?
+      await Promise.all([api(sharePath),api(sharePath+(selectedId?'&':'?')+'expired=true')]) : [[],[]]
     if (sequence !== refreshSequence.current) return
-    setHolders(result.holders);setInstitution(result.institution); setRole(result.role); setItems(result.items); setShares(active)
+    setHolders(result.holders);setInstitution(result.institution); setRole(result.role); setItems(result.items); setShares(active); setExpired(ended)
   }
   useEffect(()=>{ refresh().catch(()=>{}) },[])
   useEffect(()=>{
@@ -44,7 +53,7 @@ export function Credentials() {
   },[items])
   function resetSession() {
     refreshSequence.current++
-    setRole(null); setItems([]); setShares([]); setLink(''); setSelected(null)
+    setRole(null); setItems([]); setShares([]); setExpired([]); setPage(0); setQuery(''); setFilter(''); setDraft(example); setLink(''); setSelected(null)
   }
   async function run(action:()=>Promise<void>) {
     setBusy(true); setMessage('')
@@ -69,20 +78,29 @@ export function Credentials() {
   return <Dashboard role={role} institution={institution} title={titles[role]} busy={busy}
     onLogout={()=>void run(async()=>{await api('session','DELETE');resetSession()})}>
       {(role==='admin' || role==='superadmin') && <Management role={role}/>}
-      {role==='registrar' && <div className="overview" aria-label="Institution overview"><span><strong>{items.length}</strong> credentials</span><span><strong>{items.filter(i=>i.state==='issued').length}</strong> issued</span><span><strong>{items.filter(i=>i.state==='review').length}</strong> in review</span></div>}
-      {role==='registrar' && <details className="issue-form" id="issue"><summary>Issue a diploma</summary><form onSubmit={e=>{e.preventDefault(); const fields=Object.fromEntries(new FormData(e.currentTarget)); void run(async()=>{await api('diplomas','POST',fields);await refresh()})}}>
+      {role==='registrar' && <div className="overview" aria-label="Institution overview"><span><strong>{items.length}</strong> credentials</span><span><strong>{items.filter(i=>i.state==='issued').length}</strong> issued</span><span><strong>{items.filter(i=>i.state==='draft').length}</strong> drafts</span><span><strong>{items.filter(i=>['queued','dispatching','registered'].includes(i.state)).length}</strong> pending</span><span><strong>{items.filter(i=>i.state==='review').length}</strong> in review</span></div>}
+      {role==='registrar' && items.length>0 && <details className="distribution"><summary>Credential status distribution</summary><p>Current records · all award dates · {sourceName(items[0].mode || '')}</p>{Array.from(new Set(items.map(i=>i.state))).sort().map(state=>{
+        const count=items.filter(i=>i.state===state).length
+        return <div key={state}><span>{state}</span><meter aria-label={state} value={count} max={items.length}/><b>{count} of {items.length}</b></div>
+      })}</details>}
+      {role==='registrar' && <details className="issue-form" id="issue"><summary>Issue a diploma</summary><form className="draft-form" onSubmit={e=>{e.preventDefault(); const fields=Object.fromEntries(new FormData(e.currentTarget)); void run(async()=>{await api('diplomas','POST',fields);await refresh()})}}>
         <label>Graduate account<select name="holder" required>{holders.map(h=><option key={h}>{h}</option>)}</select></label>
-        {Object.entries(example).map(([k,v])=><label key={k}>{labels[k as keyof typeof labels]}<input required name={k} defaultValue={v} type={k==='award_date'?'date':'text'}/></label>)}
-        <button disabled={busy || !holders.length}>{holders.includes("fixture-holder") ? "Create draft for fixture holder" : "Create diploma draft"}</button></form></details>}
+        {Object.entries(example).map(([k,v])=><label key={k}>{labels[k as keyof typeof labels]}<input required name={k} value={draft[k as keyof typeof draft]} onChange={e=>setDraft({...draft,[k]:e.target.value})} placeholder={v} type={k==='award_date'?'date':'text'}/></label>)}
+        <aside className="draft-preview"><small>Diploma preview · draft</small><h3>{draft.award_name} · {draft.program_name}</h3><p>{draft.subject_display_name} · {draft.award_date}</p><em>{institution}</em></aside><button disabled={busy || !holders.length}>{holders.includes("fixture-holder") ? "Create draft for fixture holder" : "Create diploma draft"}</button></form></details>}
       {role==='registrar' && <section className="records" id="records"><h3>Institution credentials</h3>
-        <p>Select a credential to inspect its issuance record.</p>
-        <table><thead><tr><th>Credential</th><th>Issue date</th><th>State</th></tr></thead><tbody>
-        {items.map(item=><tr key={item.id}><td><button className="record-link" onClick={()=>setSelected(item.id)}>{item.snapshot.award_name} &middot; {item.snapshot.program_name}<small>{item.id}</small></button></td>
+        <div className="register-tools"><label>Search credentials<input type="search" placeholder="Award, programme, ID or TAR" value={query} onChange={e=>{setQuery(e.target.value);setPage(0)}}/></label>
+        <label>Issuance state<select value={filter} onChange={e=>{setFilter(e.target.value);setPage(0)}}><option value="">All states</option>{Array.from(new Set(items.map(i=>i.state))).sort().map(s=><option key={s}>{s}</option>)}</select></label></div>
+        <table><thead><tr><th>Credential</th><th>Award date</th><th>State</th></tr></thead><tbody>
+        {visibleRows.slice(currentPage*12,currentPage*12+12).map(item=><tr key={item.id}><td><button className="record-link" onClick={()=>setSelected(item.id)}>{item.snapshot.award_name} &middot; {item.snapshot.program_name}<small>{item.id}</small></button></td>
           <td>{item.snapshot.award_date}</td><td><span className={'state state-'+item.state}>{item.state}</span></td></tr>)}</tbody></table>
-        <dialog ref={detail} onClose={()=>setSelected(null)} aria-labelledby="receipt-heading">{receipt && <>
+        <div className="pager"><span role="status">{visibleRows.length ? `Records ${currentPage*12+1}–${Math.min(currentPage*12+12,visibleRows.length)} of ${visibleRows.length}` : 'No credentials match this view.'}</span>{pageCount>1 && <><button className="secondary" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Previous</button><button className="secondary" disabled={currentPage+1>=pageCount} onClick={()=>setPage(currentPage+1)}>Next</button></>}</div>
+        <dialog className="receipt-drawer" ref={detail} onClose={()=>setSelected(null)} aria-labelledby="receipt-heading">{receipt && <>
           <p className="eyebrow">{institution}</p><h2 id="receipt-heading">Evidence details</h2><p>{receipt.snapshot.award_name} &middot; {receipt.snapshot.program_name}</p>
           <dl><div><dt>Credential</dt><dd>{receipt.id}</dd></div><div><dt>Issuance state</dt><dd>{receipt.state}</dd></div></dl>
-          <dl><div><dt>Matched TAR version</dt><dd>{receipt.version ?? 'Unavailable'}</dd></div><div><dt>Last issuance evidence match</dt><dd>{receipt.last_matched ? new Date(receipt.last_matched).toLocaleString() : 'Awaiting match'}</dd></div></dl><h3>Registry reference</h3>{receipt.reference ? <code>{receipt.reference}</code> : <p>No receipt recorded.</p>}
+          <dl><div><dt>Matched TAR version</dt><dd>{receipt.version ?? 'Unavailable'}</dd></div><div><dt>Last issuance evidence match</dt><dd>{receipt.last_matched ? new Date(receipt.last_matched).toLocaleString() : 'Awaiting match'}</dd></div></dl><dl><div><dt>Environment</dt><dd>{receipt.mode ? sourceName(receipt.mode) : 'Unavailable'}</dd></div></dl><h3>Registry reference</h3>{receipt.reference ? <code>{receipt.reference}</code> : <p>No receipt recorded.</p>}
+          {receipt.reference && <CopyField value={receipt.reference} label="Copy reference"/>}
+          {receipt.reference?.startsWith('urn:tar:eip155.') && <dl><div><dt>Chain ID</dt><dd>{receipt.reference.split(':')[2].split('.')[1]}</dd></div><div><dt>Contract</dt><dd><code>{receipt.reference.split(':')[3]}</code></dd></div></dl>}
+          <h3>Issuance-time TAR checksum</h3>{receipt.registry_checksum ? <><code>{receipt.registry_checksum}</code><CopyField value={receipt.registry_checksum} label="Copy checksum"/></> : <p>No TAR checksum stored for this record.</p>}
           <p>{receipt.state==='issued' ? 'Evidence matched when the institution issued this diploma. Open a current graduate share for a fresh check.' :
             receipt.state==='review' ? 'An operator must review the evidence before issuance.' : receipt.state==='registered' ? 'Receipt recorded. Independent readback is pending.' : receipt.state==='draft' ? 'Ready for registrar confirmation.' : 'Issuance is pending.'}</p>
           {receipt.state==='draft' && <button disabled={busy} onClick={()=>run(async()=>{await api('diplomas/'+receipt.id+'/issue','POST');await refresh();detail.current?.close()})}>Confirm issuance</button>}
@@ -91,7 +109,7 @@ export function Credentials() {
       {role==='holder' && <h2 id="wallet">My diplomas</h2>}
       {role==='holder' && <p>Each share reveals the award, programme, award date and issuer. Your name stays private.</p>}
       {role==='holder' && detailKey && <><a href="/?workspace&graduate">Back to wallet</a>{!walletItem && <p>Credential unavailable for this account.</p>}</>}
-      {role!=='registrar' && (detailKey ? items.filter(i=>i.id===walletItem?.id) : items).map(i=><article key={i.id}><div data-credential={i.id}><strong>{i.snapshot.award_name} · {i.snapshot.program_name}</strong>
+      {role!=='registrar' && (detailKey ? items.filter(i=>i.id===walletItem?.id) : items).map(i=><article key={i.id}><div className="wallet-paper" data-credential={i.id}><small>Academic credential · {institution}</small><strong>{i.snapshot.award_name} · {i.snapshot.program_name}</strong>
         <a href={'/?workspace&graduate&credential='+i.id}>Open credential details</a>
         {detailKey && <dl><div><dt>Issuer identifier</dt><dd>{i.snapshot.issuer_id}</dd></div><div><dt>Programme</dt><dd>{i.snapshot.program_name}</dd></div><div><dt>Award</dt><dd>{i.snapshot.award_name}</dd></div><div><dt>Award date</dt><dd>{i.snapshot.award_date}</dd></div></dl>}
         <p>{i.snapshot.subject_display_name} · {i.snapshot.award_date}</p><span className={'state state-'+i.state}>{i.state}</span>{i.reference && <details><summary>Registry reference</summary><code>{i.reference}</code></details>}</div>
@@ -107,7 +125,13 @@ export function Credentials() {
           <button className="secondary" disabled={busy} aria-label={'Disable link '+share.id.slice(0,8)} onClick={()=>run(async()=>{
             await api('shares/'+share.id,'DELETE');setLink('');setMessage('Share disabled.');await refresh()
           })}>Disable link</button></article>)}</div>}
+      {role==='holder' && <details className="expired-shares"><summary>Expired links ({expired.length})</summary>{expired.length ? expired.map(s=><p key={s.id}>{s.programme} · Expired {new Date(s.expires).toLocaleString()}</p>) : <p>No expired links in this view.</p>}</details>}
     <p role="status">{message}</p></Dashboard>
+}
+
+function CopyField({value,label}:{value:string,label:string}){
+  const [message,setMessage]=useState('')
+  return <><button className="secondary" onClick={async()=>{try{await navigator.clipboard.writeText(value);setMessage('Copied.')}catch{setMessage('Select the value above to copy it.')}}}>{label}</button> <small role="status">{message}</small></>
 }
 
 export function Verifier(){
@@ -144,7 +168,7 @@ export function Verifier(){
         generation.current++;setResult({status:'Enter a verification link from this Vertetify site.'})
       }
     }}><label>Verification link<input value={input} onChange={event=>setInput(event.target.value)} required autoComplete="off" spellCheck={false}/></label><button>Verify</button></form>
-    <section className={'proof-card '+(positive?'positive':'neutral')} aria-live="polite"><h2>{states[result.status] || result.status}</h2>
+    <section className={'proof-card '+(result.status==='verified_local_chain'?'positive':result.status==='Checking proof…'?'loading':result.status==='evidence_mismatch'?'mismatch':'neutral')} aria-live="polite"><p className="eyebrow">{result.source ? sourceName(result.source) : "Evidence check"}</p><h2>{states[result.status] || result.status}</h2>
     {result.checked_at && <p className="checked">Checked <time dateTime={result.checked_at}>{new Date(result.checked_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'long'})}</time></p>}
     {positive && result.diploma && <dl>{Object.entries(result.diploma).map(([k,v])=><div key={k}><dt>{fieldNames[k] || k}</dt><dd>{v}</dd></div>)}</dl>}</section></main></>
 }

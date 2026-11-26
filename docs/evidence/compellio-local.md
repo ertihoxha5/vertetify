@@ -92,3 +92,17 @@ Application and test revision `b3b2071`, on the existing local demo volumes. Fro
 | Anonymous disclosure | Issuer ID, award, award date and programme. After disable the result was `link_unavailable` and contained no diploma. |
 
 The comparison establishes integrity against this local chain. Academic accreditation and the accuracy of the original institutional assertion require separate evidence. The Edge wallet test decoded the displayed QR and verified this credential through the public page. See the [M5 tracker](../progress.md) for the bounded performance run, privacy regression and outstanding reviewer observation.
+
+## Frontend redesign · 26 November 2026
+
+From the rebuilt working tree based on `630cedb`, `docker compose exec -T web python journey.py` issued a fresh Juniper diploma through the production adapter. The test created two holder shares, checked the four-field anonymous projection, disabled each share and verified that disabling the first preserved its sibling.
+
+| Observation | Actual value |
+| --- | --- |
+| Provider, network and UTC time | `compellio-local`, chain 31337, 2026-11-26T11:49:17.941827Z |
+| Credential | `70a18248-b091-4783-b8de-100cbc1ca515` |
+| TAR and issuing version | `urn:tar:eip155.31337:0x959922be3caee4b8cd9a407cc3ac1c251c2007b1`, version 1 |
+| Registry receipt | `1cb6e1b5-cc59-488c-adba-deff7bc3f572` |
+| Embedded diploma commitment | `ab0acee0210ed2a9d58b3f717ebc1c901b2e03aa13f496e7d6773dfaf9645058` |
+| RFC 8785 TAR payload SHA-256, Registry checksum and local contract read | All three returned `fe7940485be3e13ce6da49aae4c87c59a368cfb6e07a3fbac01f6335c3ecbe6b` |
+| Signed-out verification | `verified_local_chain`, disclosing issuer, award, programme and award date |

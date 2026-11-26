@@ -29,7 +29,7 @@ export function Dashboard({role,institution,title,children,onLogout,busy}:{
       <button className="rail-exit" onClick={onLogout} disabled={busy}>Sign out</button>
     </aside>
     <section className="dash-body" id="dashboard-top">
-      <header className="dash-title"><p className="eyebrow">{labels[role]} dashboard</p><h1>{title}</h1></header>
+      <header className="dash-title"><small>{institution} / Overview</small><p className="eyebrow">{labels[role]} dashboard</p><h1>{title}</h1></header>
       {children}
     </section>
   </div>

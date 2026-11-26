@@ -3,7 +3,7 @@ import { api } from './api'
 
 type Account = {member:string,password:string}
 type Application = {id:string,name:string,contact:string,state:string}
-type Operations = {requests:Application[],mode:string,start:string,end:string,issuance:Record<string,number>,outcomes:Record<string,number>}
+type Operations = {requests:Application[],mode:string,start:string,end:string,issuance:Record<string,number>,outcomes:Record<string,number>,states:Record<string,number>,activity:{action:string,at:string}[]}
 type Member = {member:string,role:string}
 
 function useAction() {
@@ -68,7 +68,8 @@ export function Management({role}:{role:'superadmin'|'admin'}) {
     ops && <><section id="requests"><h3>Institution requests</h3>{ops.requests.length===0 && <p>No requests received.</p>}{ops.requests.map(r=><article key={r.id}><div><strong>{r.name}</strong><small>{r.contact} · {r.state}</small></div>{r.state!=='active' && <button disabled={busy} onClick={()=>invitation('access/requests/'+r.id+'/approve')}>{r.state==='pending'?'Approve and invite':'Replace invitation'}</button>}</article>)}</section>
     <section id="health"><h3>System health</h3><ol className="system-path" aria-label="Registry request path"><li>Vertetify API<small>Operations response received</small></li><li>Compellio Registry<small>{health.Registry || 'Checking'}</small></li><li>Local test chain<small>{health.Chain || 'Checking'}</small></li></ol></section>
     <p id="volume">{ops.start} through {ops.end} UTC · {ops.mode}</p>
-    <Counts title="Issuance volume" values={ops.issuance} description="Distinct diplomas with a successful issuance evidence match per UTC day."/>
-    <Counts title="Verification outcomes" values={ops.outcomes} description="Completed public verification requests by outcome since counting began, within this date range."/></>}
+    <div className="operations-grid"><Counts title="Issuance volume" values={ops.issuance} description="Distinct diplomas with a successful issuance evidence match per UTC day."/>
+    <Counts title="Verification outcomes" values={ops.outcomes} description="Completed public verification requests by outcome since counting began, within this date range."/></div>
+    <Counts title="Registration states" values={ops.states} description={'Current diploma counts across institutions · all dates · '+ops.mode}/><section><h3>Recent access activity</h3>{ops.activity.length ? <ol>{ops.activity.map((entry,i)=><li key={i}>{entry.action.replaceAll('_',' ')} · <time dateTime={entry.at}>{new Date(entry.at).toLocaleString()}</time></li>)}</ol> : <p>No access events recorded.</p>}</section></>}
   </div>
 }

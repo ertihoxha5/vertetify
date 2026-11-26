@@ -1,5 +1,33 @@
 # Milestone review · 24 November 2026
 
+## Frontend redesign · 26 November 2026
+
+The public navigation now connects the platform tour, workflow, university and graduate guides, privacy page, verifier, sign-in and access request. The four product previews are screenshots of the application rendered with isolated synthetic data. Their simulated result is explicitly labeled. The homepage also includes a disclosure specimen, evidence diagram and reduced-motion presentation.
+
+Registrars can search the authorized register by programme, award, ID or TAR, filter by state, page through results, preview a draft and open a keyboard-dismissable receipt drawer. Migration 006 stores the matched version-one TAR checksum during successful real issuance. Earlier diplomas retain their original receipts and can show an unavailable checksum. The wallet now separates current links from expired links within the same holder and diploma scope. The operator workspace shows current registration counts and the five most recent access-event types and timestamps. Public diploma disclosure remains limited to four fields.
+
+| Acceptance run | Result |
+| --- | --- |
+| Production build and lint | TypeScript and Vite production build passed. Ruff passed for backend and scripts. |
+| Isolated functional checks | 18 tests passed in 2.426 seconds, including recovery, tenant restrictions, private error responses and expired-link scope. Simulator HTTP and worker rehearsals passed. |
+| Official local provider | Fresh synthetic issuance on chain 31337 returned a version-one TAR. SHA-256 of canonical TAR data matched the Registry and contract reads. Anonymous verification returned `verified_local_chain`. See [full evidence](evidence/compellio-local.md#frontend-redesign--26-november-2026). |
+| Desktop and mobile browser | Edge exercised the homepage at 360, 390, 768 and 1440 pixels, the mobile menu, four previews, audience and privacy pages, keyboard workflow, credential detail, QR decode, anonymous result at 320 pixels, drawer dismissal and link disable. Institution request, approval, activation, admin invitation and live operator health also passed. |
+| Human acceptance | Physical iPhone and independent reviewer observations are still pending. |
+
+[Desktop home](evidence/frontend-redesign/home-desktop.png) · [Mobile home](evidence/frontend-redesign/home-mobile.png) · [Registrar receipt](evidence/frontend-redesign/registrar-receipt.png) · [Signed-out verification](evidence/frontend-redesign/verifier-mobile.png)
+
+From the repository root with the [official local provider](integrations/compellio.md) running:
+
+```powershell
+docker compose -f compose.yaml -f compose.registry.yaml -f compose.database.yaml up -d --build --wait
+docker compose exec -T web python journey.py
+docker compose exec -T web python flows.py fixture-registrar
+```
+
+Open [Vertetify](http://127.0.0.1:8184/). Choose **Explore the platform** for the interactive previews. To inspect the new issuance, sign in as the Juniper registrar with the terminal password, search for the journey's credential ID and open its receipt. Compare the checksum with the journey output. For the graduate flow, obtain the password with `docker compose exec -T web python flows.py fixture-holder`, sign in as the graduate, open the award and create a share. Open that link in a private window and disable it after the check.
+
+To repeat QA, run `python scripts/smoke.py`. For Edge automation install the Playwright, Pillow and zxing-cpp Python packages, set `$env:VERTETIFY_CHECK_CREDENTIAL` to the fresh ID, then run `python scripts/check_mobile.py` and `python scripts/check_access.py`. To regenerate the synthetic showcase, run `npm --prefix frontend run build` and `python scripts/capture_tour.py`, then rebuild the frontend to package the images.
+
 ## M5 release acceptance · 26 November 2026
 
 **Engineering checks passed on local candidate `b3b2071`. Independent acceptance is pending.** A live invalid verification request echoed the submitted marker in its HTTP 422 body before the fix. The candidate omits submitted values from validation responses and applies privacy headers to rejected origins.
@@ -23,6 +51,14 @@ python scripts/check_mobile.py
 The browser check uses Edge, Playwright, Pillow and zxing-cpp. Open [the local demo](http://127.0.0.1:8184) for the same flow. Sign in as the fixture holder, open the issued credential, choose **Share award**, and open the link in a private window. Expect **Registry and local blockchain evidence match**. Disable the link in the wallet and reopen it to see **Link expired, disabled or unavailable**. Fixture password commands and the [independent reviewer procedure](manual-testing.md#independent-reviewer-pending) are in the manual testing guide.
 
 The [candidate TAR evidence](evidence/compellio-local.md#m5-candidate--26-november-2026) records the same credential used by the browser and latency checks. A separate reviewer has yet to run this candidate from a clean checkout. A physical iPhone observation is optional for this pass and remains unperformed.
+
+## M5 identity regression and M6 submission preparation
+
+The disposable PostgreSQL rehearsal reached readiness in 37.7 seconds. All 17 tests passed in 2.156 seconds, followed by the simulator HTTP journey and worker rehearsal. A recently active session succeeded one minute before its eight-hour absolute limit and was rejected at the limit. Replaced and expired first-admin invitations returned HTTP 410; a newly issued invitation activated the administrator. These tests extend the earlier idle-expiry, membership-change and single-use checks.
+
+The existing one-page report contains two links. Both returned HTTP 200 without credentials. GitHub reported the repository as public, and anonymous downloads of the PDF (94,767 bytes) and video (429,466 bytes) matched the local files byte for byte. The [pilot plan](adoption.md) now defines how a registrar sponsor could measure effort, correct self-service decisions and privacy comprehension. Measurements and stakeholder interviews remain pending. Final report and video review stays at the end.
+
+Physical-phone testing remains an optional device-specific QA observation for this pass. Browser QR decoding and anonymous verification have already passed. Independent human sign-off remains open.
 
 ## M5 clean-checkout rehearsal · 25 November 2026
 

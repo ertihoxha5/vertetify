@@ -121,7 +121,7 @@ def diplomas(req: Request):
     with connect() as db:
         tenant, member, role = actor(db, req)
         rows = db.execute(
-            """SELECT id,snapshot,state,reference,
+            """SELECT id,snapshot,state,reference,registry_checksum,
                    (SELECT max(occurred) FROM diploma_events e WHERE e.diploma=d.id AND e.event='evidence_matched')
                    FROM diplomas d WHERE tenant=%s AND mode=%s
             AND (%s='registrar' OR (%s='holder' AND holder=%s AND state='issued')) ORDER BY id""",
@@ -133,8 +133,9 @@ def diplomas(req: Request):
             "institution": db.execute("SELECT name FROM tenants WHERE id=%s", (tenant,)).fetchone()[0],
             "items": [
                 {"id": k, "snapshot": p, "state": s, "reference": r, "last_matched": checked,
+                 **({"registry_checksum": checksum, "mode": mode()} if role=="registrar" else {}),
                  "version": 1 if checked and mode()=="compellio-local" else None}
-                for k, p, s, r, checked in rows
+                for k, p, s, r, checksum, checked in rows
             ],
         }
 
@@ -188,15 +189,15 @@ def share(key: UUID, req: Request):
 
 
 @router.get("/shares")
-def active_shares(req: Request, credential: UUID | None = None):
+def active_shares(req: Request, credential: UUID | None = None, expired: bool = False):
     with connect() as db:
         tenant, member, _ = actor(db, req, "holder")
         rows = db.execute(
             """SELECT s.management_id, s.expires, d.snapshot->>'program_name'
                FROM diploma_shares s JOIN diplomas d ON (s.tenant,s.diploma)=(d.tenant,d.id)
                WHERE s.tenant=%s AND d.holder=%s AND d.mode=%s AND d.state='issued'
-                 AND NOT s.disabled AND s.expires>now() AND (%s::uuid IS NULL OR d.id=%s)
-               ORDER BY s.expires DESC, s.management_id""", (tenant, member, mode(),credential,credential)
+                 AND NOT s.disabled AND (s.expires<=now())=%s AND (%s::uuid IS NULL OR d.id=%s)
+               ORDER BY s.expires DESC, s.management_id""", (tenant, member, mode(),expired,credential,credential)
         ).fetchall()
         return [{"id": key, "expires": expires, "programme": programme} for key, expires, programme in rows]
 

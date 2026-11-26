@@ -34,7 +34,7 @@ def main():
             Path(__file__).resolve().parents[1]
             / "docs"
             / "evidence"
-            / "institution-access"
+            / "frontend-redesign"
         )
         evidence.mkdir(exist_ok=True)
         for width in (360, 390, 768, 1440):
@@ -54,6 +54,29 @@ def main():
             assert holder.evaluate("document.documentElement.scrollWidth <= innerWidth")
             if width == 1440:
                 holder.screenshot(path=evidence / "home-desktop.png", full_page=True)
+        for width in (390, 1440):
+            holder.set_viewport_size({"width": width, "height": 900})
+            holder.goto(origin)
+            if width == 390:
+                holder.locator(".wordmark img").evaluate("img => img.decode()")
+                holder.screenshot(path=evidence / "home-mobile.png", animations="disabled")
+                holder.get_by_role("button", name="Menu", exact=True).click()
+            nav = holder.get_by_role("navigation", name="Main navigation")
+            nav.get_by_role("link", name="Platform", exact=True).click()
+            for label in ("University dashboard", "Diploma issuance", "Graduate wallet", "Public result"):
+                holder.get_by_role("button", name=label).click()
+                holder.wait_for_function("document.querySelector('.showcase img')?.naturalWidth === 960")
+            for route in ("universities", "graduates", "privacy"):
+                holder.goto(origin + "/?page=" + route)
+                assert holder.locator("h1").is_visible()
+                assert holder.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            holder.goto(origin + "/?how")
+            for label in ("University", "Registry", "Graduate", "Verifier"):
+                button = holder.get_by_role("button", name=label, exact=True)
+                button.focus()
+                holder.keyboard.press("Enter")
+                assert button.get_attribute("aria-pressed") == "true"
+        holder.goto(origin)
         holder.set_viewport_size({"width": 390, "height": 844})
         holder.get_by_role("link", name="Staff and graduate sign-in").click()
         holder.get_by_label("Fixture account").focus()
@@ -141,10 +164,17 @@ def main():
             page.get_by_role("button", name="Sign in").click()
             if account == "fixture-registrar":
                 page.get_by_role("heading", name="Registry evidence").wait_for()
+                page.get_by_label("Search credentials").fill("no-matching-synthetic-record")
+                page.get_by_text("No credentials match this view.").wait_for()
+                page.get_by_label("Search credentials").fill(key or "")
+                if key:
+                    page.get_by_label("Issuance state").select_option("issued")
                 row = page.locator(".record-link")
                 (row.filter(has_text=key) if key else row.first).click()
                 page.get_by_role("dialog").wait_for()
-                page.screenshot(path=evidence / "registrar-receipt.png")
+                if key:
+                    assert page.get_by_role("button", name="Copy checksum").is_visible()
+                page.screenshot(path=evidence / "registrar-receipt.png", animations="disabled")
                 page.keyboard.press("Escape")
                 assert page.get_by_role("dialog").count() == 0
             else:

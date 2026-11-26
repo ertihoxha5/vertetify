@@ -87,7 +87,7 @@ def process():
                 event(db, tenant, key, "receipt_saved")
                 db.commit()
             try:
-                evidence(db, tenant, ref, digest)
+                matched = evidence(db, tenant, ref, digest)
             except registry.RegistryError as exc:
                 db.execute(
                     """UPDATE diplomas SET verify_attempts=verify_attempts+1,
@@ -98,7 +98,8 @@ def process():
                 )
                 event(db, tenant, key, str(exc))
             else:
-                db.execute("UPDATE diplomas SET state='issued' WHERE id=%s", (key,))
+                db.execute("UPDATE diplomas SET state='issued',registry_checksum=%s WHERE id=%s",
+                           (matched if mode() == "compellio-local" else None, key))
                 event(db, tenant, key, "evidence_matched")
             db.commit()
         return "processed"

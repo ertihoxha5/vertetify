@@ -84,6 +84,7 @@ class SessionPolicyTests(unittest.TestCase):
             db.rollback()
 
     def test_scoped_records_and_public_failures(self):
+        from flows import active_shares
         from registry import RegistryError
 
         def session(db, name, role, tenant):
@@ -141,6 +142,11 @@ class SessionPolicyTests(unittest.TestCase):
                     (mine,),
                 )
                 self.assertEqual(public_verify(token)["status"], "link_unavailable")
+                self.assertEqual(len(active_shares(holder, mine, expired=True)), 1)
+                self.assertEqual(active_shares(holder, mine), [])
+                self.assertEqual(active_shares(holder, other, expired=True), [])
+                with self.assertRaises(HTTPException):
+                    active_shares(auditor, mine, expired=True)
                 db.execute(
                     "UPDATE diploma_shares SET expires=now()+interval '1 day' WHERE diploma=%s",
                     (mine,),

@@ -189,6 +189,14 @@ def operations(req: Request):
                 (mode(), start, today),
             ).fetchall()
         )
+        states = dict(db.execute(
+            "SELECT state,count(*) FROM diplomas WHERE mode=%s GROUP BY state ORDER BY state",
+            (mode(),),
+        ).fetchall())
+        activity = db.execute(
+            """SELECT action,occurred FROM access_events WHERE mode=%s
+               ORDER BY sequence DESC LIMIT 5""", (mode(),),
+        ).fetchall()
         outcomes = dict(
             db.execute(
                 "SELECT outcome,sum(total)::bigint FROM verification_counts WHERE mode=%s AND day BETWEEN %s AND %s GROUP BY outcome",
@@ -207,6 +215,8 @@ def operations(req: Request):
             for i in range(7)
         },
         "outcomes": outcomes,
+        "states": states,
+        "activity": [{"action": action, "at": at} for action, at in activity],
     }
 
 
