@@ -4,7 +4,7 @@ import { RegistryHeader } from './identity'
 
 import { api } from './api'
 import { Management } from './access'
-type Item = {id:string, snapshot:Record<string,string>, state:string, reference:string|null,version:number|null,last_matched:string|null,registry_checksum?:string,mode?:string}
+type Item = {id:string, snapshot:Record<string,string>, state:string, reference:string|null,version:number|null,last_matched:string|null,registry_checksum?:string,profile_tar?:string|null,mode?:string}
 import { Dashboard, type Role } from './dashboard'
 type ActiveShare = { id:string, expires:string, programme:string }
 const example = {subject_display_name:'Drita Demo',program_name:'Shkencë Kompjuterike',award_name:'BSc',award_date:'2026-06-30'}
@@ -100,6 +100,7 @@ export function Credentials() {
           <dl><div><dt>Matched TAR version</dt><dd>{receipt.version ?? 'Unavailable'}</dd></div><div><dt>Last issuance evidence match</dt><dd>{receipt.last_matched ? new Date(receipt.last_matched).toLocaleString() : 'Awaiting match'}</dd></div></dl><dl><div><dt>Environment</dt><dd>{receipt.mode ? sourceName(receipt.mode) : 'Unavailable'}</dd></div></dl><h3>Registry reference</h3>{receipt.reference ? <code>{receipt.reference}</code> : <p>No receipt recorded.</p>}
           {receipt.reference && <CopyField value={receipt.reference} label="Copy reference"/>}
           {receipt.reference?.startsWith('urn:tar:eip155.') && <dl><div><dt>Chain ID</dt><dd>{receipt.reference.split(':')[2].split('.')[1]}</dd></div><div><dt>Contract</dt><dd><code>{receipt.reference.split(':')[3]}</code></dd></div></dl>}
+          {receipt.profile_tar && <><h3>Diploma profile TAR</h3><code>{receipt.profile_tar}</code><CopyField value={receipt.profile_tar} label="Copy profile reference"/></>}
           <h3>Issuance-time TAR checksum</h3>{receipt.registry_checksum ? <><code>{receipt.registry_checksum}</code><CopyField value={receipt.registry_checksum} label="Copy checksum"/></> : <p>No TAR checksum stored for this record.</p>}
           <p>{receipt.state==='issued' ? 'Evidence matched when the institution issued this diploma. Open a current graduate share for a fresh check.' :
             receipt.state==='review' ? 'An operator must review the evidence before issuance.' : receipt.state==='registered' ? 'Receipt recorded. Independent readback is pending.' : receipt.state==='draft' ? 'Ready for registrar confirmation.' : 'Issuance is pending.'}</p>

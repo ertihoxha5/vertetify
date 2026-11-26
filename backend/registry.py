@@ -58,10 +58,27 @@ def endpoints():
     return "http://127.0.0.1:18660/api/v1/TAR", "http://127.0.0.1:18545"
 
 
-def envelope(digest):
+# Vertetify's own JSON-LD vocabulary. Its chain-specific TAR ID is assigned by the Registry.
+PROFILE = {
+    "@id": "urn:vertetify:profile:diploma-commitment:v1",
+    "@context": {
+        "@version": 1.1,
+        "type": "@type",
+        "VertetifyDiplomaCommitmentV1": "urn:vertetify:type:diploma-commitment:v1",
+        "commitment": "urn:vertetify:property:commitment",
+    },
+}
+
+
+def envelope(digest, profile=None):
     if not DIGEST.fullmatch(digest):
         raise ValueError("Expected diploma commitment")
-    return {"type": "VertetifyDiplomaCommitmentV1", "commitment": digest}
+    payload = {"type": "VertetifyDiplomaCommitmentV1", "commitment": digest}
+    if profile is not None:
+        if not TAR.fullmatch(profile):
+            raise RegistryError("invalid_reference")
+        payload["@context"] = profile
+    return payload
 
 
 def rpc(method, params):
@@ -82,13 +99,18 @@ def check_chain():
         raise RegistryError("wrong_chain")
 
 
-def register(digest):
+def post_record(payload):
     check_chain()
-    result = request(endpoints()[0], envelope(digest), 201)
+    result = request(endpoints()[0], payload, 201)
     ref = result.get("id")
     if not isinstance(ref, str) or not TAR.fullmatch(ref):
         raise RegistryError("invalid_evidence")
+    check_record(result, ref, payload)
     return ref
+
+
+def register(digest, profile=None):
+    return post_record(envelope(digest, profile))
 
 
 def contract_checksum(address, version):
@@ -118,24 +140,34 @@ def contract_checksum(address, version):
     return raw[2:].lower()
 
 
-def verify(reference, digest):
+def check_record(record, reference, payload):
+    expected = hashlib.sha256(rfc8785.dumps(payload)).hexdigest()
+    if (
+        record.get("id") != reference
+        or type(record.get("version")) is not int
+        or record["version"] != 1
+        or record.get("data") != payload
+        or str(record.get("checksum")).lower() != "0x" + expected
+    ):
+        raise RegistryError("evidence_mismatch")
+    return expected
+
+
+def verify_record(reference, payload):
     match = TAR.fullmatch(reference)
     if not match:
         raise RegistryError("invalid_reference")
     check_chain()
-    payload = envelope(digest)
-    expected = hashlib.sha256(rfc8785.dumps(payload)).hexdigest()
     latest = request(f"{endpoints()[0]}/{reference}")
     historical = request(f"{endpoints()[0]}/version/{reference}:1")
-    for record in (latest, historical):
-        if (
-            record.get("id") != reference
-            or type(record.get("version")) is not int
-            or record["version"] != 1
-            or record.get("data") != payload
-            or str(record.get("checksum")).lower() != "0x" + expected
-        ):
-            raise RegistryError("evidence_mismatch")
+    check_record(latest, reference, payload)
+    expected = check_record(historical, reference, payload)
     if contract_checksum(match[1], 1) != expected:
         raise RegistryError("evidence_mismatch")
     return expected
+
+
+def verify(reference, digest, profile=None):
+    if profile is not None:
+        verify_record(profile, PROFILE)
+    return verify_record(reference, envelope(digest, profile))

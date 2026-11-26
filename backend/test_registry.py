@@ -44,6 +44,20 @@ class RegistryContractTests(unittest.TestCase):
         with self.assertRaises(registry.RegistryError):
             self.verify(self.tar, self.tar, "3" * 64)
 
+    def test_create_response_must_match_submitted_payload(self):
+        with patch("registry.check_chain"), patch("registry.request", return_value=dict(self.tar, checksum="0x00")):
+            with self.assertRaisesRegex(registry.RegistryError, "evidence_mismatch"):
+                registry.register(self.digest)
+
+    def test_profile_is_bound_to_new_envelope(self):
+        profile = "urn:tar:eip155.31337:" + "a" * 40
+        with patch("registry.verify_record", return_value=self.checksum) as read:
+            registry.verify(self.ref, self.digest, profile)
+        self.assertEqual(read.call_args_list[0].args, (profile, registry.PROFILE))
+        self.assertEqual(read.call_args_list[1].args, (self.ref, dict(self.tar["data"], **{"@context": profile})))
+        with self.assertRaisesRegex(registry.RegistryError, "evidence_mismatch"):
+            self.verify(dict(self.tar, version=2), self.tar, self.checksum)
+
     def test_wrong_chain_before_write(self):
         with (
             patch("registry.rpc", return_value="0x1"),

@@ -121,7 +121,7 @@ def diplomas(req: Request):
     with connect() as db:
         tenant, member, role = actor(db, req)
         rows = db.execute(
-            """SELECT id,snapshot,state,reference,registry_checksum,
+            """SELECT id,snapshot,state,reference,registry_checksum,registry_profile,
                    (SELECT max(occurred) FROM diploma_events e WHERE e.diploma=d.id AND e.event='evidence_matched')
                    FROM diplomas d WHERE tenant=%s AND mode=%s
             AND (%s='registrar' OR (%s='holder' AND holder=%s AND state='issued')) ORDER BY id""",
@@ -133,9 +133,9 @@ def diplomas(req: Request):
             "institution": db.execute("SELECT name FROM tenants WHERE id=%s", (tenant,)).fetchone()[0],
             "items": [
                 {"id": k, "snapshot": p, "state": s, "reference": r, "last_matched": checked,
-                 **({"registry_checksum": checksum, "mode": mode()} if role=="registrar" else {}),
+                 **({"registry_checksum": checksum, "profile_tar": profile, "mode": mode()} if role=="registrar" else {}),
                  "version": 1 if checked and mode()=="compellio-local" else None}
-                for k, p, s, r, checksum, checked in rows
+                for k, p, s, r, checksum, profile, checked in rows
             ],
         }
 
@@ -247,16 +247,16 @@ def verify_share(data: Token):
         "status": "link_unavailable",
     }
     with connect() as db:
-        query = """SELECT d.snapshot,d.nonce,d.reference,d.tenant FROM diploma_shares s JOIN diplomas d
+        query = """SELECT d.snapshot,d.nonce,d.reference,d.tenant,d.registry_profile FROM diploma_shares s JOIN diplomas d
             ON d.id=s.diploma AND d.tenant=s.tenant WHERE s.digest=%s AND s.expires>clock_timestamp()
             AND NOT s.disabled AND d.state='issued' AND d.mode=%s"""
         params = (keyed("share", data.token), mode())
         row = db.execute(query, params).fetchone()
         if not row:
             return result
-        snapshot, nonce, ref, tenant = row
+        snapshot, nonce, ref, tenant, profile = row
         try:
-            evidence(db, tenant, ref, commitment(snapshot, nonce))
+            evidence(db, tenant, ref, commitment(snapshot, nonce), profile)
         except RegistryError as exc:
             result["status"] = (
                 str(exc)

@@ -133,18 +133,23 @@ def rehearse(origin):
     )
     if mode() == "compellio-local":
         with connect() as db:
-            snapshot, nonce = db.execute(
-                "SELECT snapshot,nonce FROM diplomas WHERE id=%s", (key,)
+            snapshot, nonce, profile = db.execute(
+                "SELECT snapshot,nonce,registry_profile FROM diplomas WHERE id=%s", (key,)
             ).fetchone()
         evidence["institution"] = snapshot["issuer_id"]
         evidence["application_commitment"] = commitment(snapshot, nonce)
         record = registry.request(f"{registry.endpoints()[0]}/version/{item['reference']}:1")
+        if not profile or record["data"].get("@context") != profile:
+            raise RuntimeError("Fresh diploma did not reference its registered profile.")
+        evidence["profile_tar"] = profile
+        evidence["profile_checksum"] = registry.verify_record(profile, registry.PROFILE)
+        evidence["version"] = record["version"]
         evidence["receipt"] = record.get("receipt")
         evidence["jcs_payload_sha256"] = hashlib.sha256(rfc8785.dumps(record["data"])).hexdigest()
         evidence["registry_checksum"] = record["checksum"][2:].lower()
         evidence["contract_checksum"] = registry.contract_checksum(registry.TAR.fullmatch(item["reference"])[1], 1)
         evidence["envelope_sha256"] = registry.verify(
-            item["reference"], commitment(snapshot, nonce)
+            item["reference"], commitment(snapshot, nonce), profile
         )
     print(json.dumps(evidence, indent=2))
 

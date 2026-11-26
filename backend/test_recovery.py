@@ -21,7 +21,12 @@ class RecoveryTests(unittest.TestCase):
         self.config = patch.dict(os.environ, REGISTRY_MODE="compellio-local")
         self.config.start()
         self.addCleanup(self.config.stop)
+        self.profile = "urn:tar:eip155.31337:" + "a" * 40
+        profile_stub = patch("issuance.ensure_profile", return_value=self.profile)
+        profile_stub.start()
+        self.addCleanup(profile_stub.stop)
         with connect() as db:
+            db.execute("INSERT INTO registry_profile(reference) VALUES (%s) ON CONFLICT DO NOTHING", (self.profile,))
             self.key = draft(db, "juniper", "fixture-holder", VECTOR)
             db.execute("UPDATE diplomas SET state='queued' WHERE id=%s", (self.key,))
         self.ref = "urn:tar:eip155.31337:" + "b" * 40
@@ -70,4 +75,4 @@ class RecoveryTests(unittest.TestCase):
                 "SELECT snapshot,nonce,registry_checksum FROM diplomas WHERE id=%s", (self.key,)
             ).fetchone()
         self.assertEqual(checksum, "ab" * 32)
-        self.assertEqual(post.call_args.args, (commitment(snapshot, nonce),))
+        self.assertEqual(post.call_args.args, (commitment(snapshot, nonce), self.profile))

@@ -6,6 +6,7 @@ from uuid import uuid4
 from psycopg.types.json import Jsonb
 
 import registry
+from registry_profile import ensure_profile
 import worker
 from proof import commitment
 from store import connect
@@ -38,9 +39,9 @@ def draft(db, tenant, holder, fields):
     return key
 
 
-def evidence(db, tenant, ref, digest):
+def evidence(db, tenant, ref, digest, profile=None):
     if mode() == "compellio-local":
-        return registry.verify(ref, digest)
+        return registry.verify(ref, digest, profile)
     if worker.lookup(db, tenant, ref) != (digest,):
         raise registry.RegistryError("evidence_mismatch")
     return digest
@@ -56,22 +57,29 @@ def process():
             (mode(),),
         )
         targets = db.execute(
-            """SELECT id,tenant,snapshot,nonce,state,reference FROM diplomas
+            """SELECT id,tenant,snapshot,nonce,state,reference,registry_profile FROM diplomas
                                 WHERE mode=%s AND state IN ('registered','queued') AND next_check<=now()
                                 ORDER BY next_check,id LIMIT 16""",
             (mode(),),
         ).fetchall()
         db.commit()
-        for key, tenant, snapshot, nonce, state, ref in targets:
+        for key, tenant, snapshot, nonce, state, ref, profile in targets:
             digest = commitment(snapshot, nonce)
             if state == "queued":
+                if mode() == "compellio-local":
+                    try:
+                        profile = ensure_profile(db)
+                    except registry.RegistryError:
+                        db.execute("UPDATE diplomas SET next_check=now()+interval '1 minute' WHERE id=%s", (key,))
+                        db.commit()
+                        continue
                 db.execute(
-                    "UPDATE diplomas SET state='dispatching' WHERE id=%s", (key,)
+                    "UPDATE diplomas SET state='dispatching',registry_profile=%s WHERE id=%s", (profile, key)
                 )
                 db.commit()
                 try:
                     ref = (
-                        registry.register(digest)
+                        registry.register(digest, profile)
                         if mode() == "compellio-local"
                         else worker.register(db, tenant, digest)
                     )
@@ -87,7 +95,7 @@ def process():
                 event(db, tenant, key, "receipt_saved")
                 db.commit()
             try:
-                matched = evidence(db, tenant, ref, digest)
+                matched = evidence(db, tenant, ref, digest, profile)
             except registry.RegistryError as exc:
                 db.execute(
                     """UPDATE diplomas SET verify_attempts=verify_attempts+1,

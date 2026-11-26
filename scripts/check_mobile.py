@@ -34,7 +34,7 @@ def main():
             Path(__file__).resolve().parents[1]
             / "docs"
             / "evidence"
-            / "frontend-redesign"
+            / os.getenv("VERTETIFY_EVIDENCE_FOLDER", "frontend-redesign")
         )
         evidence.mkdir(exist_ok=True)
         for width in (360, 390, 768, 1440):

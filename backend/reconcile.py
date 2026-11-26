@@ -15,14 +15,14 @@ def reconcile(key, reference):
     with connect() as db:
         db.execute("SELECT pg_advisory_xact_lock(1736202)")
         row = db.execute(
-            """SELECT tenant,snapshot,nonce,reference FROM diplomas
+            """SELECT tenant,snapshot,nonce,reference,registry_profile FROM diplomas
                             WHERE id=%s AND mode=%s AND state='review' FOR UPDATE""",
             (key, mode()),
         ).fetchone()
         if not row or row[3] not in (None, reference):
             raise ValueError("A matching operation in review is required.")
-        tenant, snapshot, nonce, _ = row
-        registry.verify(reference, commitment(snapshot, nonce))
+        tenant, snapshot, nonce, _, profile = row
+        registry.verify(reference, commitment(snapshot, nonce), profile)
         db.execute(
             """UPDATE diplomas SET reference=%s,state='registered',verify_attempts=0,next_check=now()
                       WHERE id=%s""",

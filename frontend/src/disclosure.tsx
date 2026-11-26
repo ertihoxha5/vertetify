@@ -5,7 +5,7 @@ const panels = [
     ['Issuer identifier','juniper'], ['Award','BSc'], ['Programme','Computer Science'], ['Award date','30 June 2026']
   ]},
   {label:'Registry evidence', title:'What the Registry holds', rows:[
-    ['Payload','Diploma commitment'], ['Canonical format','RFC 8785 JSON'],
+    ['Payload','Diploma commitment'], ['Profile reference','Registered TAR in @context'], ['Canonical format','RFC 8785 JSON'],
     ['Integrity check','SHA-256'], ['Local chain','31337']
   ]}
 ]
