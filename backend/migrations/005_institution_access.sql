@@ -10,7 +10,7 @@ CREATE TABLE institution_requests (
 CREATE TABLE access_invitations (
     digest bytea PRIMARY KEY, tenant text NOT NULL REFERENCES tenants(id), mode text NOT NULL,
     role text NOT NULL CHECK(role IN ('admin','registrar','auditor','holder')),
-    expires timestamptz NOT NULL DEFAULT now()+interval '48 hours', used boolean NOT NULL DEFAULT false
+    expires timestamptz NOT NULL DEFAULT (now() + INTERVAL '48 hours'), used boolean NOT NULL DEFAULT false
 );
 CREATE TABLE invited_logins (
     tenant text NOT NULL, member text PRIMARY KEY, mode text NOT NULL, secret bytea NOT NULL,

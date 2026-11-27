@@ -27,7 +27,8 @@ def check(url, condition):
 if __name__ == "__main__":
     try:
         started = time.monotonic()
-        compose("up", "--build", "--wait", "--wait-timeout", "120")
+        # Recovery tests run their own dispatchers and need exclusive use of the queue.
+        compose("up", "--build", "--wait", "--wait-timeout", "120", "web")
         print(f"Fresh stack ready in {time.monotonic() - started:.1f}s", flush=True)
         address = compose("port", "web", "8000", capture=True).strip()
         base = "http://" + address
@@ -36,6 +37,7 @@ if __name__ == "__main__":
         check(base + "/api/health/ready", lambda body: json.loads(body)["status"] == "ready")
         check(base + "/api/workspace", lambda body: json.loads(body)["mode"] == "simulator")
         compose("exec", "-T", "-e", "VERTETIFY_ISOLATED_TEST=1", "web", "python", "-m", "unittest", "-v")
+        compose("up", "--build", "--no-deps", "--wait", "--wait-timeout", "120", "dispatcher")
         compose("exec", "-T", "web", "python", "journey.py")
         compose("run", "--rm", "--no-deps", "worker", "python", "worker.py", "rehearse")
         print("Local simulator HTTP and database checks passed.")

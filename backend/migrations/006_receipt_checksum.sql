@@ -1,1 +1,3 @@
-ALTER TABLE diplomas ADD COLUMN registry_checksum text CHECK (registry_checksum ~ '^[0-9a-f]{64}$');
+ALTER TABLE diplomas
+ADD registry_checksum varchar(64) NULL
+	CHECK (registry_checksum IS NULL OR (LEN(registry_checksum) = 64 AND registry_checksum NOT LIKE '%[^0-9a-f]%'));

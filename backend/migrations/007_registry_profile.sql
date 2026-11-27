@@ -1,5 +1,5 @@
 CREATE TABLE registry_profile (
-    singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+    singleton bit PRIMARY KEY DEFAULT (1) CHECK (singleton = 1),
     reference text UNIQUE
 );
 ALTER TABLE diplomas ADD registry_profile text REFERENCES registry_profile(reference);
